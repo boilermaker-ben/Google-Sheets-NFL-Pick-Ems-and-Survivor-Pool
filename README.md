@@ -1,0 +1,2 @@
+# Google-NFL-Pick-Ems
+Google Script to run within Google Sheets that pulls from a template form to create a season-long NFL Pick'Ems league run through a Google Sheet with a weekly updating Google Form to receive responses from members. Creates a number of analysis pages of the picks and also tracks Monday Night Football winners, a survivor pool, and uses Monday Night Football combined score as a tiebreaker.
