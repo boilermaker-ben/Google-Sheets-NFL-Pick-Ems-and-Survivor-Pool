@@ -14,169 +14,129 @@ Disclaimer: This set of functions relies on the use of the ESPN API for pulling 
 It’s amazing to have the power of creating these kinds of spreadsheets and forms through Google. This content is not intended to be published nor executed outside of the use by personal users. 
 
 Lastly, there are some safeguards Google has in place to avoid allowing users to execute any malicious code from the Google Scripts console. Please feel free to review the code below, as it contains no functions to share information, transfer information, or send emails. Information only travels between your personal Google Sheet and your Google Form that are created in the process outlined below. All sharing of content must be done by you directly (via the links that are created), such as sharing the link to the Google Form with your members and sharing a “view only” version of the spreadsheet with them to allow the members to see their league’s standings.
-Table of Contents
 
-Example Sheets - Screenshots of the output from a league done in 2021
-WEEKLY Sheet
-SUMMARY Sheet
-OVERALL Sheet
-MNF Sheet
-SURVIVOR Sheet
-Example Form - Screenshot of form from week 18 in 2021
-Setup Instructions - create new document, create script, paste code, run initial setup
-Usage - how to use the tool
-Custom Functions Overview - description of all custom functions in the “Pick’Ems” menu
-Raw Code - to be pasted into Google Scripts Extension for creating content
+**Table of Contents**
 
 
+**Example Sheets** - Screenshots of the output from a league done in 2021
 
+- WEEKLY Sheet
+  
+- SUMMARY Sheet
+  
+- OVERALL Sheet
+  
+- MNF Sheet
+  
+- SURVIVOR Sheet
+  
+**Example Form** - Screenshot of form from week 18 in 2021
 
+**Setup Instructions** - create new document, create script, paste code, run initial setup
 
+**Usage** - how to use the tool
 
+**Custom Functions Overview** - description of all custom functions in the “Pick’Ems” menu
 
-
-
-
-
-
-
-
+**Raw Code** - to be pasted into Google Scripts Extension for creating content
 
 
 
-
-
-1. Example Sheets
+**1. Example Sheets**
 WEEKLY Sheet:
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg?raw=true)
 
 SUMMARY Sheet:
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-02.jpg?raw=true)
 
 MNF Sheet:
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-03.jpg?raw=true)
 
 OVERALL Sheet:
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-04.jpg?raw=true)
 
 SURVIVOR Sheet:
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-05.jpg?raw=true)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2. Example Form
+**2. Example Form**
 When membership is unlocked, the form will have a text entry field, rather than the dropdown, for “Name”.
-[MANY MATCHES LATER]
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-06.jpg?raw=true)
 
+**3. Setup Instructions**
+1. Go to Google Sheets and create a blank spreadsheet, and give it a name → click here to automatically create a new spreadsheet
 
+2. Select “Extensions” > “Apps Script”
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-01.jpg?raw=true)
 
+3. In the tab that opens, replace entire code [in this repository] in place of existing text
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-02.jpg?raw=true)
 
+4. Click the “Save project” icon, wait for it to save; “untitled.gs” will be renamed to “Code.gs” (change if you want)
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-03.jpg?raw=true)
 
+5. Ensure that ‘runFirst’ is the selected function from the function dropdown
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-04.jpg?raw=true)
 
+6. Click “Run” button to start initial setup
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-05.jpg?raw=true)
 
+7. After 5-10 seconds, a “Authorization required” box will appear, click “Review permissions”
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-06.jpg?raw=true)
 
+8. Select your preferred Google account for managing the spreadsheet and form
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-07.jpg?raw=true)
 
+9. "App isn't verified" pops up, click “Advanced” on bottom left
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-08.jpg?raw=true)
 
+10. Click “Go to Untitled project (unsafe)” on bottom left
+11. ![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-09.jpg?raw=true)
 
-3. Setup Instructions
-Go to Google Sheets and create a blank spreadsheet, and give it a name → click here to automatically create a new spreadsheet
-Select “Extensions” > “Apps Script”
+11. Review permissions, scroll down and click “Allow”
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-10.jpg?raw=true)
 
-In the tab that opens, replace entire code [final section of this document] in place of existing text
+12. The initial script will run. It’s going to make a copy of the Google Form template (image below) and do a lot more. Give it time--it’s making a bunch of sheets too. Go back to the spreadsheet to answer prompts.
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-11.jpg?raw=true)
 
-Click the “Save project” icon, wait for it to save; “untitled.gs” will be renamed to “Code.gs” (change if you want)
+13. You should now be ready to start running the pick’ems league. More detailed usage below. Cheers!
 
+**4. Usage**
 
+1. The first prompt you’ll see when you return to the sheet should be the following:
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Usage-01.jpg?raw=true)
 
-Ensure that ‘runFirst’ is the selected function from the function dropdown
+2. You’ll next be prompted to select if you’d like to keep the members list unlocked. At the beginning of the season, you may leave the members unlocked and the form will have a text entry question for Name. Upon locking membership, you will then have a dropdown selection for the Form, which is easier and less likely to result in errors or falsely creating new entries.
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Usage-02.jpg?raw=true)
 
-Click “Run” button to start initial setup
+3. Next you’ll be asked if you’d like to create the first form (ideally this is prior to week 1 of the regular season, though I may have succeeded in making this a robust enough tool to start midway through). Recommended to create it now, though you can create it later.
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Usage-03.jpg?raw=true)
 
-After 5-10 seconds, a “Authorization required” box will appear, click “Review permissions”
-
-
-
-
-
-
-
-
-
-Select your preferred Google account for managing the spreadsheet and form
-
-"App isn't verified" pops up, click “Advanced” on bottom left
-
-Click “Go to Untitled project (unsafe)” on bottom left
-
-
-
-
-
-
-
-
-
-Review permissions, scroll down and click “Allow”
-
-The initial script will run. It’s going to make a copy of the Google Form template (image below) and do a lot more. Give it time--it’s making a bunch of sheets too. Go back to the spreadsheet to answer prompts. 
-
-You should now be ready to start running the pick’ems league. More detailed usage below. Cheers!
-
-
-
-
-
-
-4. Usage
-The first prompt you’ll see when you return to the sheet should be the following:
-
-You’ll next be prompted to select if you’d like to keep the members list unlocked. At the beginning of the season, you may leave the members unlocked and the form will have a text entry question for Name. Upon locking membership, you will then have a dropdown selection for the Form, which is easier and less likely to result in errors or falsely creating new entries.
-
-Next you’ll be asked if you’d like to create the first form (ideally this is prior to week 1 of the regular season, though I may have succeeded in making this a robust enough tool to start midway through). Recommended to create it now, though you can create it later.
-
-Lastly, you should be shown a message like the following that gives both the editable link to the Google Form that was created and a shareable link for the form (to give to your members)
+4. Lastly, you should be shown a message like the following that gives both the editable link to the Google Form that was created and a shareable link for the form (to give to your members)
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Usage-04.jpg?raw=true)
 
 NOTE: If you ever miss the edit form link or the shareable form link, you can always find them in the “FORM” tab that usually is hidden by default; sheets can be unhidden by selecting the specific sheet in the flyout menu on the lower left (indicated with an arrow).
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Usage-05.jpg?raw=true)
 
 NOTE: Use the “Share” button on the upper right of the spreadsheet to allow the Spreadsheet link to be viewable by your members (be sure to set the link role to “Viewer” -- which is the default).
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5. Custom Functions Overview
+**5. Custom Functions Overview**
 Once the scripts have completed, you should have a new menu option on the top ribbon entitled “Pick’Ems”
+![alt text](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/GoogleSheetsNFLPick'Ems-Functions-01.jpg?raw=true)
 
-Update Form: This function will allow you to create a new form for the week, there are safety checks to ensure you don’t erase previous entry information and it allows you to override the current week (pulled from API) to select whatever week you’d like
-Check NFL Scores: won’t work until the first week starts; this can bring down all completed matches and the tiebreaker information from the MNF game, if available.
-Check Responses: checks the responses in the Google Form without revealing picks so you can hound the worthless members who haven’t submitted picks yet; prompts to import if all responses are submitted.
-Import Picks: direct function to import all pick’em information submitted, it does check responses first and confirm you’d like to submit.
-Import Thursday Picks: in case you have lagging members who you allow to submit their picks late (and not count the Thursday game for them), this allows you to only import the Thursday night game matchup picks from your faithful members.
-Add Member: prompts to bring in a new member; data from previous weeks will be temporarily stored in an array and then re-populated once each sheet is updated to include the new member; this is a clunky system for doing multiple additions, but you should be able to repeat as many times as needed.
-Lock Members: recommended to lock membership down, not that it really increases efficiency, but it will remove the “Add Member” function from the menu and convert the menu to say “Unlock Members” in place of the “Lock Members’ function.
-Update NFL Schedule: pulls any changes from NFL scheduling updates (likely not needed, but some games are flexed into primetime).
-Rebuild Calculations: updates all calculated cells on the main sheets (not weekly sheets), likely unneeded for most cases
+**Update Form:** This function will allow you to create a new form for the week, there are safety checks to ensure you don’t erase previous entry information and it allows you to override the current week (pulled from API) to select whatever week you’d like
+
+**Check NFL Scores:** won’t work until the first week starts; this can bring down all completed matches and the tiebreaker information from the MNF game, if available.
+
+**Check Responses:** checks the responses in the Google Form without revealing picks so you can hound the worthless members who haven’t submitted picks yet; prompts to import if all responses are submitted.
+
+**Import Picks:** direct function to import all pick’em information submitted, it does check responses first and confirm you’d like to submit.
+
+**Import Thursday Picks:** in case you have lagging members who you allow to submit their picks late (and not count the Thursday game for them), this allows you to only import the Thursday night game matchup picks from your faithful members.
+
+**Add Member:** prompts to bring in a new member; data from previous weeks will be temporarily stored in an array and then re-populated once each sheet is updated to include the new member; this is a clunky system for doing multiple additions, but you should be able to repeat as many times as needed.
+
+**Lock Members:** recommended to lock membership down as soon as you can; at the beginning of the season, you may leave the members unlocked and the form will have a TEXT entry question for "Name", but upon locking membership, you will then have a DROPDOWN selection for the Form, which is easier and less likely to result in errors or falsely creating new entries.
+
+**Update NFL Schedule:** pulls any changes from NFL scheduling updates (likely not needed, but some games are flexed into primetime).
+
+**Rebuild Calculations:** updates all calculated cells on the main sheets (not weekly sheets), likely unneeded for most cases
