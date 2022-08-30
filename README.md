@@ -236,3 +236,12 @@ Once the scripts have completed, you should have a new menu option on the top ri
 **Update NFL Schedule:** pulls any changes from NFL scheduling updates (likely not needed, but some games are flexed into primetime).
 
 **Rebuild Calculations:** updates all calculated cells on the main sheets (not weekly sheets), likely unneeded for most cases
+
+
+-------------------------
+
+
+
+Thanks for checking out the project and for making it to the end!
+
+I'll just leave this here if anyone is feeling generous or finds this useful [https://www.buymeacoffee.com/benpowers](https://www.buymeacoffee.com/benpowers).
