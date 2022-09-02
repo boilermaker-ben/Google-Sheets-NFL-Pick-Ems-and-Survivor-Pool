@@ -143,6 +143,8 @@ function runFirst() {
   }
   catch (err) {
     Logger.log('runFirst ' + err);
+    Logger.log('runFirstLine ' + err.line);
+    Logger.log('runFirstStack ' + err.stack);
   }    
 }
 
@@ -151,6 +153,7 @@ function runFirst() {
 function createMenuUnlocked(trigger) {
   var menu = SpreadsheetApp.getUi().createMenu('Pick\'Ems')
   menu.addItem('Update Form','formFiller')
+      .addItem('Open Form','openForm')
       .addItem('Check NFL Scores','fetchNFLScores')
       .addSeparator()
       .addItem('Check Responses','formCheckAlertCall')
@@ -177,6 +180,7 @@ function createMenuUnlocked(trigger) {
 function createMenuLocked(trigger) {
   var menu = SpreadsheetApp.getUi().createMenu('Pick\'Ems')
   menu.addItem('Update Form','formFiller')
+      .addItem('Open Form','openForm')
       .addItem('Check NFL Scores','fetchNFLScores')
       .addSeparator()
       .addItem('Check Responses','formCheckAlertCall')
@@ -2434,7 +2438,12 @@ function formFiller(auto) {
   fetchNFL(); 
   
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var id = '1hWvQQ-mE5kg4-5d4qlosy-5X_X4Sam8mhhqui59Dsmc'; // ID of template form to use for creation of new form for future use
+  var formSheet = ss.getSheetByName('FORM');
+  if ( formSheet == null ) {
+    ss.insertSheet('FORM');
+    formSheet = ss.getSheetByName('FORM');
+  }
+  
   var year = fetchYear();
   var first, week;
   try {
@@ -2448,6 +2457,8 @@ function formFiller(auto) {
   catch (err){
     Logger.log('No Week Set Yet, checking API info');
     week = fetchWeek();
+    ss.setNamedRange('WEEK',formSheet.getRange(1,2));
+    ss.getRangeByName('WEEK').setValue(week);
     first = true;
   }
   
@@ -2479,7 +2490,7 @@ function formFiller(auto) {
     }
   }
   catch (err) {
-    Logger.log('formFiller ' + err.message);
+    Logger.log('No previous form; moving on');
     first = true;
   }
   var formReset;
@@ -2505,11 +2516,7 @@ function formFiller(auto) {
     if ( week < 10 ) {
       mask = '_0' 
     }
-    var formSheet = ss.getSheetByName('FORM');
-    if ( formSheet == null ) {
-      ss.insertSheet('FORM');
-      formSheet = ss.getSheetByName('FORM');
-    }
+    
     ss.setNamedRange('WEEK',formSheet.getRange(1,2));
     ss.getRangeByName('WEEK').setValue(week);
     var sheet = ss.getSheetByName(year + mask + week);
@@ -2550,8 +2557,7 @@ function formFiller(auto) {
     var first = false;
     if ( range.getValue() == '' ) {
       first = true;
-      var file = DriveApp.getFileById(id).makeCopy();
-      form = FormApp.openById(file.getId());
+      form = FormApp.create('Week ' + week + ' NFL Pick\’Ems');
       formId = form.getId();
       urlFormPub = form.getPublishedUrl();
       urlFormEdit = form.getEditUrl();
@@ -2700,14 +2706,26 @@ function formFiller(auto) {
       
     // Update all formulas to account for new weekly sheets that may have been created
       allFormulasUpdate();
-      
-      var tab = ui.alert('Google Form updated for week ' + week + '! \r\n\r\nShareable Link:\r\n' + urlFormPub + '\r\n\r\nWould you like to open the Form in a new tab?', ui.ButtonSet.YES_NO);
-      if ( tab == 'YES' ) {
-        openUrl(urlFormPub);
-      }      
+      var tab;
+      if (first == true) {
+        tab = ui.alert('Google Form created for week ' + week + '! \r\n\r\nDon\'t forget to set a football picture for the Form and maybe adjust the color scheme to your preference.\r\n\r\nWould you like to open the editable Google Form in a new tab to make updates to the look?', ui.ButtonSet.YES_NO);
+        if ( tab == 'NO') {
+          var pub = ui.alert('Google Form for week ' + week + ' Shareable Link:\r\n' + urlFormPub + '\r\n\r\nWould you like to open the weekly Google Form in a new tab?', ui.ButtonSet.YES_NO);
+          if ( pub == 'YES' ) {
+            openUrl(urlFormPub);
+          }
+        } else {
+          ui.alert('Google Form for week ' + week + ' Shareable Link:\r\n' + urlFormPub, ui.ButtonSet.OK);
+          openUrl(urlFormEdit);
+        }
+      } else {
+        tab = ui.alert('Google Form updated for week ' + week + '! \r\n\r\nShareable Link:\r\n' + urlFormPub + '\r\n\r\nWould you like to open the weekly Google Form in a new tab?', ui.ButtonSet.YES_NO);
+        if ( tab == 'YES' ) {
+          openUrl(urlFormPub);
+        }
+      }
     }
     catch (err) {
-      Logger.log('formFiller (2) ' + err.message);
       Logger.log('Aborted due to error ' + err.message);
     } 
   } else {
@@ -2722,6 +2740,25 @@ function openUrl(url){
     .setHeight(10)
     .setWidth(100);
   SpreadsheetApp.getUi().showModalDialog(html, 'Opening...');
+}
+
+//------------------------------------------------------------------------
+// OPEN FORM - Function to open the Google Form quickly from the menu
+function openForm() {
+  var formId = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('FORM_ID').getValue();
+  if (formId == null || formId == ''){
+    var ui = SpreadsheetApp.getUi();
+    var alert = ui.alert('No Form created yet, would you like to create one now?', ui.ButtonSet.YES_NO);
+    if (alert == 'YES') {
+      formFiller(auto);
+    } else {
+      ui.alert('Try again after you\'ve created the initial Google Form.', ui.ButtonSet.OK);
+    }
+  } else {
+    var form = FormApp.openById(formId);
+    var urlFormPub = form.getPublishedUrl();
+    openUrl(urlFormPub);
+  }
 }
 
 //------------------------------------------------------------------------
@@ -3160,5 +3197,3 @@ function resetSpreadsheet() {
 
 // 2022 - Created by Ben Powers
 // ben.powers.creative@gmail.com
-// 
-
