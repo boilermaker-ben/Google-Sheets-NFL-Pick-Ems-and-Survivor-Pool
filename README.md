@@ -1,7 +1,7 @@
 # Google Sheets / Forms NFL Pick'Ems
 ## Run your own pick'ems pool with this handy script and your own Google account
 
-Google Script to run within Google Sheets that pulls from a template form to create a season-long NFL Pick'Ems league run through a Google Sheet with a weekly updating Google Form to receive responses from members.
+Google Script to run within Google Sheets that creates a Google Form to create a season-long NFL Pick'Ems league run through a Google Sheet with a weekly updating Google Form to receive responses from members.
 
 -------------------------
 
@@ -84,7 +84,7 @@ Lastly, there are some safeguards Google has in place to avoid allowing users to
 -------------------------
 
 # **2. Example Form**
-When membership is unlocked, the form will have a text entry field, rather than the dropdown, for “Name”.
+Update your form to look like this, or whatever you prefer. The script will create all the weekly entries for each matchup of the week, a survivor pool prompt, a tiebreaker entry field, and a comments section. When membership is unlocked, the form will have a text entry field, rather than the dropdown, for “Name”.
 
 <p align="center">
 <img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-06.jpg" width="500" alt="Example Form part 1">
@@ -162,7 +162,7 @@ When membership is unlocked, the form will have a text entry field, rather than 
 <img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-10.jpg" width="400" alt="Allow script to run">
 </p>
 
-12. The initial script will run. It’s going to make a copy of the Google Form template (image below) and do a lot more. **Go back to the spreadsheet to answer prompts--and be patient.**
+12. The initial script will run. It’s going to make a Google Form (image below of how I customized mine) and do a lot more. **Go back to the spreadsheet to answer prompts--and be patient.**
 
 <p align="center">
 <img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-11.jpg" width="600" alt="Form Template image">
