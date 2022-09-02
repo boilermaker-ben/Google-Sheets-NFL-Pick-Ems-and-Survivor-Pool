@@ -142,8 +142,6 @@ function runFirst() {
 
   }
   catch (err) {
-    Logger.log('runFirst ' + err);
-    Logger.log('runFirstLine ' + err.line);
     Logger.log('runFirstStack ' + err.stack);
   }    
 }
