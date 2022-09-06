@@ -2658,12 +2658,14 @@ function formFiller(auto) {
           } else {
             day = data[i][5];
           }
-          if ( data[i][4] == 0 ) {
-            time = (data[i][3] - 12) + ':00';
+          if ( data[i][4] == 0 && data[i][3] > 12 ) {
+            time = (data[i][3] - 12) + ':00'; //case for 1pm start or later (24 hour time converted to standard 12 hour format)
+          } else if ( data[i][4] == 0 ) {
+            time = data[i][3] + ':00'; //case of 12pm start (noon)
           } else if ( data[i][4] < 10 ) {
-            time = (data[i][3] - 12)  + ':0' + data[i][4];
+            time = (data[i][3] - 12)  + ':0' + data[i][4]; // early (pre-noon) game start time with only one digit for minutes
           } else {
-            time = (data[i][3] - 12)  + ':' + data[i][4];
+            time = (data[i][3] - 12)  + ':' + data[i][4]; // early (pre-noon) game start time with two digits for minutes
           }
           item.setTitle(day + ' at ' + time + ': ' + data[i][8] + ' ' + data[i][9] + ' at ' + data[i][10] + ' ' + data[i][11])
           .setChoices([
