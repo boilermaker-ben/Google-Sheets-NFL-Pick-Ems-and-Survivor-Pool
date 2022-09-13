@@ -475,7 +475,6 @@ function fetchNFL() {
     if(objTeams[i]['id'] != 0 ) {
       abbr = objTeams[i]['abbrev'].toUpperCase();
       name = objTeams[i]['name'];
-      if (abbr == "WSH") { abbr = "WAS",name = "Football Team"}
       location = objTeams[i]['location'];
       espnId.push(objTeams[i]['id']);
       espnAbbr.push(abbr);
@@ -679,6 +678,7 @@ function fetchNFL() {
 // NFL ACTIVE WEEK SCORES - script to check and pull down any completed matches and record them to the sheet
 function fetchNFLScores(){
   var url = 'http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'
+  
   var obj = JSON.parse(UrlFetchApp.fetch(url));
   var ui = SpreadsheetApp.getUi();
   var week;
@@ -715,6 +715,9 @@ function fetchNFLScores(){
         } else if (competitors[1]['winner'] == true) {
           winners.push(competitors[1]['team']['abbreviation']);
           tiebreakers.push(parseInt(competitors[0]['score'])+parseInt(competitors[1]['score']));
+        } else {
+          winners.push(competitors[0]['team']['abbreviation'] + '=' + competitors[1]['team']['abbreviation']);
+          tiebreakers.push(parseInt(competitors[0]['score'])+parseInt(competitors[1]['score']));          
         }
       } else {
         undecided++;
@@ -725,13 +728,15 @@ function fetchNFLScores(){
       completed = true;
     }
     for (a = 0; a < matchups.length; a++){
-      if (sheet.getRange(writeRange.getRow(),writeRange.getColumn()+a).getValue() != '' && (winners.indexOf(matchups[a].split('@')[0]) >= 0 || winners.indexOf(matchups[a].split('@')[1]) >= 0 )){
+      if (sheet.getRange(writeRange.getRow(),writeRange.getColumn()+a).getValue() != '' && (sheet.getRange(writeRange.getRow(),writeRange.getColumn()+a).getValue() == 'TIE' || winners.indexOf(matchups[a].split('@')[0]) >= 0 || winners.indexOf(matchups[a].split('@')[1]) >= 0 )){
         existing++;
       }
     }
     remaining = winners.length - existing;
     var alert = 'CANCEL';
-    if (completed && remaining > 0){
+    if (completed && remaining == 1) {
+      alert = ui.alert('WEEK ' + week + ' COMPLETE: \r\n Record the final unmarked match and tiebreaker?', ui.ButtonSet.OK_CANCEL);
+    } else if (completed && remaining > 0){
       alert = ui.alert('WEEK ' + week + ' COMPLETE: \r\n Record all unmarked matches and tiebreaker?', ui.ButtonSet.OK_CANCEL);
     } else if (remaining > 1 && undecided > 1) {
       alert = ui.alert('WEEK ' + week + ' INCOMPLETE: \r\n Record ' + remaining + ' unmarked, completed matches? \r\n (There are ' + undecided + ' undecided matches remaining)', ui.ButtonSet.OK_CANCEL);
@@ -756,28 +761,55 @@ function fetchNFLScores(){
       for (a = 0; a < matchups.length; a++){
         let teamA = matchups[a].split('@')[0];
         let teamB = matchups[a].split('@')[1];
-        matchups[a] = '';
         writeCell = sheet.getRange(writeRange.getRow(),writeRange.getColumn()+a);
+        if ((winners.indexOf(teamA) >= 0 && writeCell.getValue() == teamA) || (winners.indexOf(teamB) >= 0 && writeCell.getValue() == teamB)){
+          matchups[a] = '';
+        }
         if (winners.indexOf(teamA) >= 0 && writeCell.getValue() == ''){
           writeCell.setValue(teamA);
+          matchups[a] = '';
         }
         if (winners.indexOf(teamB) >= 0 && writeCell.getValue() == ''){
           writeCell.setValue(teamB);
+          matchups[a] = '';
         }
         if (completed && a == (matchups.length-1) && (winners.indexOf(teamA) >= 0 || winners.indexOf(teamB) >= 0)){
           tiebreakerCell.setValue(tiebreakers[a]);
         }
       }
-      if (completed){
-        var prompt = ui.alert('WEEK ' + week + ' COMPLETE: \r\n Advance survivor pool?', ui.ButtonSet.YES_NO);
-        if ( prompt == 'YES' ){
-          ss.getRangeByName('WEEK').setValue(week+1);
-        } else {
-          ss.toast('Completed scores import');
+      var rule, rules;
+      var args = [];
+      for (let b = 0; b < winners.length; b++) {
+        args = [];
+        if (winners[b].split('=')[1] != undefined){
+          for (a = 0; a < matchups.length; a++){
+            if (matchups[a] != '') {
+              let teamA = matchups[a].split('@')[0];
+              let teamB = matchups[a].split('@')[1];
+              matchups[a] = '';
+              writeCell = sheet.getRange(writeRange.getRow(),writeRange.getColumn()+a);
+              rule = writeCell.getDataValidation();
+              args = [teamA,teamB,'TIE'];
+              rules = SpreadsheetApp.newDataValidation().requireValueInList(args, true).build();
+              writeCell.setDataValidation(rules)
+              writeCell.setValue('TIE');
+            }
+          }
+          if (completed && b == (winners.length-1)) {
+            tiebreakerCell.setValue(tiebreakers[b]);
+          }          
         }
+      }
+    }
+    if (completed){
+      var prompt = ui.alert('WEEK ' + week + ' COMPLETE: \r\n Advance survivor pool?', ui.ButtonSet.YES_NO);
+      if ( prompt == 'YES' ){
+        ss.getRangeByName('WEEK').setValue(week+1);
       } else {
         ss.toast('Completed scores import');
       }
+    } else {
+      ss.toast('Completed scores import');
     }
   }
 }
