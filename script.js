@@ -2975,7 +2975,8 @@ function dataTransfer(redirect) {
     var itemResponses;
     var week;
     var survivor;
-    var members = ss.getRangeByName('MEMBERS').getValues().flat();
+    var membersArr = ss.getRangeByName('MEMBERS').getValues(); 
+    var members = membersArr.flat();
     var sheet;
     var sheetName;
     var row;
@@ -2995,8 +2996,9 @@ function dataTransfer(redirect) {
       }
       sheet = ss.getSheetByName(sheetName);  
       if (sheet == null) {
-        ss.insertSheet(sheetName);
+        weeklySheet(year,week,membersArr,false);
         sheet = ss.getSheetByName(sheetName);
+        Logger.log('New weekly sheet created for week ' + week + ', \"' + sheetName + "\.")
       }
       
       name = toTitleCase(itemResponses[0].getResponse());
