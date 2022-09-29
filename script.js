@@ -2631,9 +2631,7 @@ function formFiller(auto) {
       data = ss.getRangeByName('NFL_' + year).getValues();
 
       var members = ss.getRangeByName('MEMBERS').getValues().flat();
-      var item;
-      var day;
-      var time;
+      var item, day, time, minutes;
       var teams = [];
       
       // Update form title, ensure description and confirmation are set
@@ -2690,14 +2688,17 @@ function formFiller(auto) {
           } else {
             day = data[i][5];
           }
-          if ( data[i][4] == 0 && data[i][3] > 12 ) {
-            time = (data[i][3] - 12) + ':00'; //case for 1pm start or later (24 hour time converted to standard 12 hour format)
-          } else if ( data[i][4] == 0 ) {
-            time = data[i][3] + ':00'; //case of 12pm start (noon)
-          } else if ( data[i][4] < 10 ) {
-            time = (data[i][3] - 12)  + ':0' + data[i][4]; // early (pre-noon) game start time with only one digit for minutes
+          if (data[i][4] < 10) {
+            minutes = '0' + data[i][4];
           } else {
-            time = (data[i][3] - 12)  + ':' + data[i][4]; // early (pre-noon) game start time with two digits for minutes
+            minutes = data[i][4];
+          }
+          if ( data[i][3] == 12 ) {
+            time = data[i][3] + ':' + minutes + ' PM'; //case for 1pm start or later (24 hour time converted to standard 12 hour format)
+          } else if ( data[i][3] > 12 ) {
+            time = (data[i][3] - 12) + ':' + minutes + ' PM'; //case for 1pm start or later (24 hour time converted to standard 12 hour format)
+          } else {
+            time = data[i][3]  + ':' + minutes + ' AM'; // early (pre-noon) game start time with two digits for minutes
           }
           item.setTitle(day + ' at ' + time + ': ' + data[i][8] + ' ' + data[i][9] + ' at ' + data[i][10] + ' ' + data[i][11])
           .setChoices([
