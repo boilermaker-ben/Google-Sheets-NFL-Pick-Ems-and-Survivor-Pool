@@ -240,6 +240,16 @@ Once the scripts have completed, you should have a new menu option on the top ri
 
 -------------------------
 
+Hopeful improvements for future versions:
+
+- Google User confirmation (auto-detection for submissions, may be above my head)
+- Better data management with a hidden "database" of submissions
+- Add column for participants in each weekly set of games
+- Picking against the spread rather than straight up option
+- More metrics (suggestions welcome!)
+
+
+-------------------------
 
 
 Thanks for checking out the project and for making it to the end!
