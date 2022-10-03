@@ -1109,11 +1109,11 @@ function weeklySheet(year,week,members,dataRestore) {
       sheet.getRange('R'+j+'C1:R'+j+'C'+(maxCols-diffCount)).setBackground('#f0f0f0');
     }
     // Formula to determine how many correct on the week
-    sheet.getRange(j,2).setFormulaR1C1('=iferror(if(counta(R2C[3]:R2C['+(finalMatchColumn-2)+'])>0,mmult(arrayformula(if(R2C[3]:R2C['+(finalMatchColumn-2)+']=R[0]C[3]:R[0]C['+(finalMatchColumn-2)+'],1,0)),transpose(arrayformula(if(not(isblank(R[0]C[3]:R[0]C['+(finalMatchColumn-2)+'])),1,0)))),))');
+    sheet.getRange(j,2).setFormulaR1C1('=iferror(if(and(counta(R2C[3]:R2C['+(finalMatchColumn-2)+'])>0,counta(R[0]C[3]:R[0]C['+(finalMatchColumn-2)+'])>0),mmult(arrayformula(if(R2C[3]:R2C['+(finalMatchColumn-2)+']=R[0]C[3]:R[0]C['+(finalMatchColumn-2)+'],1,0)),transpose(arrayformula(if(not(isblank(R[0]C[3]:R[0]C['+(finalMatchColumn-2)+'])),1,0)))),))');
     // Formula to determine weekly rank
-    sheet.getRange(j,3).setFormulaR1C1('=iferror(if(counta(R2C[2]:R2C['+(finalMatchColumn-3)+'])>0,rank(R[0]C[-1],R3C2:R'+(totalMembers+2)+'C2,false),))');
+    sheet.getRange(j,3).setFormulaR1C1('=iferror(if(and(counta(R2C[2]:R2C['+(finalMatchColumn-3)+'])>0,not(isblank(R[0]C[-1]))),rank(R[0]C[-1],R3C2:R'+(totalMembers+2)+'C2,false),))');
     // Formula to determine weekly correct percent
-    sheet.getRange(j,4).setFormulaR1C1('=iferror(if(counta(R2C[1]:R2C['+(finalMatchColumn-4)+'])>0,R'+j+'C[-2]/counta(R2C[1]:R2C['+(finalMatchColumn-4)+']),),)');
+    sheet.getRange(j,4).setFormulaR1C1('=iferror(if(and(counta(R2C[1]:R2C['+(finalMatchColumn-4)+'])>0,not(isblank(R[0]C[-2]))),R'+j+'C[-2]/counta(R2C[1]:R2C['+(finalMatchColumn-4)+']),),)');
     if ( mnf == true ) {
       // Formula to determine difference of tiebreaker from final MNF score
       sheet.getRange(j,finalMatchColumn+2).setFormulaR1C1('=iferror(if(or(isblank(R[0]C[-1]),isblank(R2C'+(finalMatchColumn+1)+')),,abs(R[0]C[-1]-R2C'+(finalMatchColumn+1)+')))');
