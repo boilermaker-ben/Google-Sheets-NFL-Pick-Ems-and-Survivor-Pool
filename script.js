@@ -327,12 +327,10 @@ function memberAdd(name) {
     var weeks = fetchTotalWeeks();
     //-------------------
     // Update WEEKLY SHEETS
-    Logger.log('working on week ' + week);
+    Logger.log('Working on week ' + week);
     nflData = ss.getRangeByName('NFL_'+year).getValues();
-    for (var a = week; a > 0; a--) {
-      weeklySheet(year,a,members,true);
-      ss.toast('Recreated sheet for week ' + week)
-    }
+    weeklySheet(year,week,members,true);
+    ss.toast('Recreated weekly sheet for week ' + week)
 
     // Create all default sheets if they don't exist
     Logger.log('Fetched NFL Schedule');
