@@ -582,7 +582,7 @@ function fetchNFL() {
   arr = [];
   
   for ( j = 0; j < (teamsLen - 1); j++ ) {
-    for ( k = 1; k < 18; k++ ) {
+    for ( k = 1; k <= 18; k++ ) {
       if (location[j][k] == 1) {
         week = k;
         awayTeam = schedule[j][k];
