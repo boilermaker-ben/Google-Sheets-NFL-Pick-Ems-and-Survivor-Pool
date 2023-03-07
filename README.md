@@ -59,14 +59,14 @@ WEEKLY Sheet
 
 <h3 align="center">SUMMARY Sheet</h3>
 <p align="center">
-<img src="/images/examples/GoogleSheets-Picks-Example-02.jpg" width="600" alt="SUMMARY Sheet">
+<img src="./images/examples/GoogleSheets-Picks-Example-02.jpg" width="600" alt="SUMMARY Sheet">
 </p>
 
 
 
 <h3 align="center">MNF Sheet</h3>
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-03.jpg" width="600" alt="MNF Sheet">
+<img src="./images/examples/GoogleSheets-Picks-Example-03.jpg" width="600" alt="MNF Sheet">
 </p>
 
 
