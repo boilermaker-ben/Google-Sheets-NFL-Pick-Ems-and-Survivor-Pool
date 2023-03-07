@@ -50,11 +50,11 @@ Lastly, there are some safeguards Google has in place to avoid allowing users to
 WEEKLY Sheet
 </h3>
 
-<center>
+<p align="center">
   
-![WEEKLY Sheet](images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg)
+![WEEKLY Sheet](/images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg)
 
-</center>
+</p>
 
 
 <h3 align="center">SUMMARY Sheet</h3>
