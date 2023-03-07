@@ -46,13 +46,15 @@ Lastly, there are some safeguards Google has in place to avoid allowing users to
 
 # **1. Example Sheets**
 
-
-![WEEKLY Sheet](/images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg?raw=true)
+<h3 align="center">WEEKLY Sheet</h3>
+<p align="center">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg" width="600" alt="WEEKLY Sheet">
+</p>
 
 
 <h3 align="center">SUMMARY Sheet</h3>
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-02.jpg" width="600" alt="SUMMARy Sheet">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-02.jpg" width="600" alt="SUMMARY Sheet">
 </p>
 
 
