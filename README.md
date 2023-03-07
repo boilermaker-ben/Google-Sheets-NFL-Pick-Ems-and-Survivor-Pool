@@ -52,35 +52,35 @@ WEEKLY Sheet
 
 <p align="center">
   
-![WEEKLY Sheet](/images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg)
+![WEEKLY Sheet](/images/examples/GoogleSheets-Picks-Example-01.jpg)
 
 </p>
 
 
 <h3 align="center">SUMMARY Sheet</h3>
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-02.jpg" width="600" alt="SUMMARY Sheet">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-02.jpg" width="600" alt="SUMMARY Sheet">
 </p>
 
 
 
 <h3 align="center">MNF Sheet</h3>
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-03.jpg" width="600" alt="MNF Sheet">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-03.jpg" width="600" alt="MNF Sheet">
 </p>
 
 
 
 <h3 align="center">OVERALL Sheet</h3>
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-04.jpg" width="600" alt="OVERALL Sheet">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-04.jpg" width="600" alt="OVERALL Sheet">
 </p>
 
 
 
 <h3 align="center">SURVIVOR Sheet</h3>
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-05.jpg" width="600" alt="SURVIVOR Sheet">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-05.jpg" width="600" alt="SURVIVOR Sheet">
 </p>
 
 
@@ -90,13 +90,13 @@ WEEKLY Sheet
 Update your form to look like this, or whatever you prefer. The script will create all the weekly entries for each matchup of the week, a survivor pool prompt, a tiebreaker entry field, and a comments section. When membership is unlocked, the form will have a text entry field, rather than the dropdown, for “Name”.
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-06.jpg" width="500" alt="Example Form part 1">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-06.jpg" width="500" alt="Example Form part 1">
 </p>
 
 <h3 align="center">[MANY MATCHES LATER]</h3>
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheetsNFLPick'Ems-Example-07.jpg" width="500" alt="Example Form part 2">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-07.jpg" width="500" alt="Example Form part 2">
 </p>
 
 
@@ -108,67 +108,67 @@ Update your form to look like this, or whatever you prefer. The script will crea
 2. **Select “Extensions” > “Apps Script”**
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-01.jpg" width="600" alt="Apps Script Menu">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-01.jpg" width="600" alt="Apps Script Menu">
 </p>
 
 3. In the tab that opens, **replace entire code** [in this repository] in place of existing text
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-02.jpg" width="600" alt="Replace dummy code">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-02.jpg" width="600" alt="Replace dummy code">
 </p>
 
 4. Click the **“Save project”** icon, wait for it to save; “untitled.gs” will be renamed to “Code.gs” (change if you want)
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-03.jpg" width="770" alt="Save Project">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-03.jpg" width="770" alt="Save Project">
 </p>
 
 5. **Ensure that ‘runFirst’ is the selected function** from the function dropdown
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-04.jpg" width="770" alt="Select runFirst">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-04.jpg" width="770" alt="Select runFirst">
 </p>
 
 6. **Click “Run”** button to start initial setup
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-05.jpg" width="770" alt="Run script">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-05.jpg" width="770" alt="Run script">
 </p>
 
 7. After 5-10 seconds, a “Authorization required” box will appear, **click “Review permissions”**
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-06.jpg" width="600" alt="Review Permissions">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-06.jpg" width="600" alt="Review Permissions">
 </p>
 
 8. **Select your preferred Google account** for managing the spreadsheet and form
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-07.jpg" width="400" alt="Select Google Account">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-07.jpg" width="400" alt="Select Google Account">
 </p>
 
 9. "App isn't verified" pops up, **click “Advanced” on bottom left**
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-08.jpg" width="400" alt="Advanced verification">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-08.jpg" width="400" alt="Advanced verification">
 </p>
 
 10. **Click “Go to Untitled project (unsafe)”** on bottom left
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-09.jpg" width="400" alt="Got to project (unsafe) prompt">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-09.jpg" width="400" alt="Got to project (unsafe) prompt">
 </p>
 
 11. Review permissions, scroll down and **click “Allow”**
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-10.jpg" width="400" alt="Allow script to run">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-10.jpg" width="400" alt="Allow script to run">
 </p>
 
 12. The initial script will run. It’s going to make a Google Form (image below of how I customized mine) and do a lot more. **Go back to the spreadsheet to answer prompts--and be patient.**
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheetsNFLPick'Ems-Instructions-11.jpg" width="600" alt="Form Template image">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/instructions/GoogleSheets-Picks-Instructions-11.jpg" width="600" alt="Form Template image">
 </p>
 
 13. You should now be ready to start running the pick’ems league. **More detailed usage below. Cheers!**
@@ -180,37 +180,37 @@ Update your form to look like this, or whatever you prefer. The script will crea
 1. The first prompt you’ll see when you return to the sheet should be the following:
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheetsNFLPick'Ems-Usage-01.jpg" width="370" alt="First Prompt">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheets-Picks-Usage-01.jpg" width="370" alt="First Prompt">
 </p>
 
 2. You’ll next be prompted to select if you’d like to keep the members list unlocked. At the beginning of the season, you may leave the members unlocked and the form will have a text entry question for Name. Upon locking membership, you will then have a dropdown selection for the Form, which is easier and less likely to result in errors or falsely creating new entries.
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheetsNFLPick'Ems-Usage-02.jpg" width="300" alt="Lock members">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheets-Picks-Usage-02.jpg" width="300" alt="Lock members">
 </p>
 
 3. Next you’ll be asked if you’d like to create the first form (ideally this is prior to week 1 of the regular season, though I may have succeeded in making this a robust enough tool to start midway through). Recommended to create it now, though you can create it later.
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheetsNFLPick'Ems-Usage-03.jpg" width="300" alt="Create first form">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheets-Picks-Usage-03.jpg" width="300" alt="Create first form">
 </p>
 
 4. Lastly, you should be shown a message like the following that gives a shareable link for the form (to give to your members)
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheetsNFLPick'Ems-Usage-04.jpg" width="600" alt="Form URL">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheets-Picks-Usage-04.jpg" width="600" alt="Form URL">
 </p>
 
 NOTE: If you ever miss the edit form link or the shareable form link, you can always find them in the “FORM” tab that usually is hidden by default; sheets can be unhidden by selecting the specific sheet in the flyout menu on the lower left (indicated with an arrow).
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheetsNFLPick'Ems-Usage-05.jpg" width="600" alt="FORM Tab">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheets-Picks-Usage-05.jpg" width="600" alt="FORM Tab">
 </p>
 
 NOTE: Use the “Share” button on the upper right of the spreadsheet to allow the Spreadsheet link to be viewable by your members (be sure to set the link role to “Viewer” -- which is the default).
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheetsNFLPick'Ems-Usage-06.jpg" width="400" alt="Share with friends">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/usage/GoogleSheets-Picks-Usage-06.jpg" width="400" alt="Share with friends">
 </p>
 
 -------------------------
@@ -219,7 +219,7 @@ NOTE: Use the “Share” button on the upper right of the spreadsheet to allow 
 Once the scripts have completed, you should have a new menu option on the top ribbon entitled “Pick’Ems”
 
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/GoogleSheetsNFLPick'Ems-Functions-01.jpg?raw=true" width="600" alt="Functions menu">
+<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/GoogleSheets-Picks-Functions-01.jpg?raw=true" width="600" alt="Functions menu">
 </p>
 
 **Update Form:** This function will allow you to create a new form for the week, there are safety checks to ensure you don’t erase previous entry information and it allows you to override the current week (pulled from API) to select whatever week you’d like
