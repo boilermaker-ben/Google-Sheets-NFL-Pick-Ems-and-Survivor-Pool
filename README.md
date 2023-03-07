@@ -52,7 +52,7 @@ WEEKLY Sheet
 
 <p align="center">
   
-![WEEKLY Sheet](/images/examples/GoogleSheets-Picks-Example-01.jpg)
+![WEEKLY Sheet](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/blob/main/images/examples/GoogleSheets-Picks-Example-01.jpg)
 
 </p>
 
