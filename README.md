@@ -47,7 +47,7 @@ Lastly, there are some safeguards Google has in place to avoid allowing users to
 # **1. Example Sheets**
 
 
-![WEEKLY Sheet](https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg)
+![WEEKLY Sheet](/images/examples/GoogleSheetsNFLPick'Ems-Example-01.jpg?raw=true)
 
 
 <h3 align="center">SUMMARY Sheet</h3>
