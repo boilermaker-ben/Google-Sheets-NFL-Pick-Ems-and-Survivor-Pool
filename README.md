@@ -48,7 +48,7 @@ Lastly, there are some safeguards Google has in place to avoid allowing users to
 
 <h3 align="center">WEEKLY Sheet</h3>
 <p align="center">
-<img src="https://github.com/boilermaker-ben/Google-NFL-Pick-Ems/raw/main/images/examples/GoogleSheets-Picks-Example-01.jpg" width="600" alt="WEEKLY Sheet">
+<img src="https://raw.githubusercontent.com/boilermaker-ben/Google-NFL-Pick-Ems/main/images/examples/GoogleSheets-Picks-Example-01.jpg" width="600" alt="WEEKLY Sheet">
 </p>
 
 
