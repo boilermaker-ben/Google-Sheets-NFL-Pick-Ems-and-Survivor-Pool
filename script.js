@@ -81,9 +81,15 @@ function runFirst() {
     Logger.log('Deployed Overall Percent sheet');
 
     // Creates Survivor Sheet (calling function)
-    var survivor = survivorSheet(year,weeks,members);
-    Logger.log('Deployed Survivor sheet');
-
+    var survivorCheck = ui.alert('Would you like to include a survivor pool?', ui.ButtonSet.YES_NO)
+    if (survivorCheck == 'YES') {
+      // Creates Survivor Sheet (calling function)
+      var survivor = survivorSheet(year,weeks,members);
+      Logger.log('Deployed Survivor sheet');
+    } else {
+      ss.deleteSheet(ss.getSheetByName('SURVIVOR'));
+    }
+    
     // Creates Summary Record Sheet (calling function)
     var summary = summarySheet(year,members);
     Logger.log('Deployed Summary sheet');
@@ -2721,10 +2727,13 @@ function formFiller(auto) {
         .setValidation(numberValidation);
       
       // Survivor question
-      item = form.addListItem();
-      item.setTitle('Survivor pick (\"NA\" if out):')
-        .setChoiceValues(teams)
-        .setRequired(true);
+      let survivorSheet = ss.getSheetByName('SURVIVOR');
+      if (survivorSheet != null){
+        item = form.addListItem();
+        item.setTitle('Survivor pick (\"NA\" if out):')
+          .setChoiceValues(teams)
+          .setRequired(true);
+      }
       
       // Passing Thoughts
       item = form.addTextItem();
