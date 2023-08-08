@@ -6,10 +6,6 @@ function runFirst() {
   
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // Pull in NFL Schedule data and create sheet
-  fetchNFL();
-  Logger.log('Fetched NFL Schedule');
-
   // Create all default sheets if they don't exist
   if ( ss.getSheetByName('SUMMARY') == null ) {
     ss.insertSheet('SUMMARY');
@@ -26,7 +22,7 @@ function runFirst() {
   if ( ss.getSheetByName('MNF') == null ) {
     ss.insertSheet('MNF');
     Logger.log('Monday Night Football sheet created');
-  }    
+  }
   if ( ss.getSheetByName('OVERALL') == null ) {
     ss.insertSheet('OVERALL');
     Logger.log('Overall sheet created');
@@ -51,7 +47,9 @@ function runFirst() {
   if ( sheet != null ) {
     ss.deleteSheet(sheet);
   }
-  Logger.log('Deleted \'Sheet 1\'');
+  // Pull in NFL Schedule data and create sheet
+  fetchNFL();
+  Logger.log('Fetched NFL Schedule');
   
   // Run through all sheet information population
   try {
@@ -111,7 +109,7 @@ function runFirst() {
     }
 
     Logger.log('Initial setup complete, proceeding to update menu');
-    var lockMembers = ui.alert('Keep members unlocked and allow new members through the Google Form?', ui.ButtonSet.YES_NO);
+    var lockMembers = ui.alert('Keep members unlocked and allow new members to be added to the pool through the Google Form?', ui.ButtonSet.YES_NO);
     if (lockMembers == 'YES') {
       createMenuUnlockedWithTriggerFirst();
     } else {
@@ -130,7 +128,7 @@ function runFirst() {
     //summary.hideSheet();
     //winners.hideSheet();
 
-  var createForm = ui.alert('Create first form now?', ui.ButtonSet.YES_NO);
+  var createForm = ui.alert('Create first Pick \'Ems submission Google Form now?', ui.ButtonSet.YES_NO);
   if (createForm == 'YES'){
     formFiller(true);
     Logger.log('Created initial form');
@@ -667,7 +665,6 @@ function fetchNFL() {
     sheet.hideSheet();
   }
   catch (err){
-    Logger.log('fetchNFL hiding ' + err.message)
   }
   ss.toast('Imported all NFL schedule data');
 }
