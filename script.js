@@ -1124,7 +1124,7 @@ function weeklySheet(year,week,members,dataRestore) {
     }
     // Formula to generate array of similar pickers on the week
     sheet.getRange(j,finalMatchColumn+6).setFormulaR1C1('=iferror(if(isblank(R[0]C5),,transpose(arrayformula({query({R3C1:R'+(totalMembers+2)+'C1,arrayformula(mmult(if(R3C5:R'+(totalMembers+2)+'C'+(finalMatchColumn)+'=R[0]C5:R[0]C'+(finalMatchColumn)+',1,0),transpose(arrayformula(column(R[0]C5:R[0]C'+(finalMatchColumn)+')\^0))))},\"select Col1 where Col1 \<\> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+
-      '\")\&\" [\"\&arrayformula('+(finalMatchColumn-2)+'-query({R3C1:R'+(totalMembers+2)+'C1,arrayformula(mmult(if(R3C5:R'+(totalMembers+2)+'C'+(finalMatchColumn)+'=R[0]C5:R[0]C'+(finalMatchColumn)+',1,0),transpose(arrayformula(column(R[0]C5:R[0]C'+(finalMatchColumn)+')\^0))))},\"select Col2 where Col1 <> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+'\"))-1\&\"]\"}))))');
+      '\")\&\" [\"\&arrayformula('+(finalMatchColumn-2)+'-query({R3C1:R'+(totalMembers+2)+'C1,arrayformula(mmult(if(R3C5:R'+(totalMembers+2)+'C'+(finalMatchColumn)+'=R[0]C5:R[0]C'+(finalMatchColumn)+',1,0),transpose(arrayformula(column(R[0]C5:R[0]C'+(finalMatchColumn)+')\^0))))},\"select Col2 where Col1 <> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+'\"))-2\&\"]\"}))))');
   }
   sheet.getRange(rows,1,1,maxCols).setBackground('#dbdbdb');
   sheet.getRange(rows,2).setBackground('#fffee3');
