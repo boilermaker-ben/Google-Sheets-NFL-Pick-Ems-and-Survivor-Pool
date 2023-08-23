@@ -1,5 +1,5 @@
 # Google Sheets / Forms NFL Pick'Ems
-## THIS IS CURRENTLY BEING REWORKED HEAVILY FOR THE 2023 SEASON--STAY TUNED AND MAYBE HOlD OFF ON USING THIS VERSION FOR NOW
+## THIS IS CURRENTLY BEING REWORKED HEAVILY FOR THE 2023 SEASON--STAY TUNED AND MAYBE HOLD OFF ON USING THIS VERSION FOR NOW
 ## Run your own pick'ems pool with this handy script and your own Google account
 
 Google Script to run within Google Sheets that creates a Google Form to create a season-long NFL Pick'Ems league run through a Google Sheet with a weekly updating Google Form to receive responses from members.
