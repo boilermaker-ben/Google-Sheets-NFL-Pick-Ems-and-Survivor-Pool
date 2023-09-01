@@ -74,7 +74,7 @@ This newest update to version 2.0 includes the following new improved features/c
 
 <h3 align="center">WEEKLY Sheet</h3>
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-picks-example01.png" width="600" alt="WEEKLY Sheet">
+<img src="https://benpowerscreative.com/wp-content/uploads/2023/09/googlesheets-pickems-outcomes-sheet.png" width="600" alt="WEEKLY Sheet">
 </p>
 
 
@@ -226,7 +226,7 @@ Update your form to look like this, or whatever you prefer. The script will crea
  - You can make the CONFIG sheet visible by going to the hamburger menu on the bottom and selecting it from the list (see red arrow in image below)
 <h3 align="center">CONFIG Sheet</h3>
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-pickems-config-sheet.png" width="600" alt="WEEKLY Sheet">
+<img src="https://benpowerscreative.com/wp-content/uploads/2023/09/googlesheets-pickems-config-sheet.png" width="400" alt="WEEKLY Sheet">
 </p>
 
 
@@ -236,7 +236,7 @@ Update your form to look like this, or whatever you prefer. The script will crea
 Once the scripts have completed, you should have a new menu option on the top ribbon entitled “Picks”
 
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-picks-menu.png?raw=true" width="600" alt="Functions menu">
+<img src="https://benpowerscreative.com/wp-content/uploads/2023/09/googlesheets-picks-menu.png" width="600" alt="Functions menu">
 </p>
 
 **Create Form:** This function will allow you to create a new form for the week, there are safety checks to ensure you don’t erase previous entry information and it allows you to decline creating a form for the proposed week and enter your own
