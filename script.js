@@ -215,7 +215,7 @@ function runFirst() {
         members = memberList();
         // Creates winner selection sheet (NFL Outcomes)
         nflOutcomes(year);
-        Logger.log('Deployed NFL winners sheet');
+        Logger.log('Deployed NFL Outcomes sheet');
         if (pickemsInclude == true) {
           // Creates Overall Record Sheet (calling function)
           overallSheet(year,weeks,members);
@@ -1116,7 +1116,6 @@ function recordNFLWeeklyScores(){
         }        
       }
       range.setValues(arr);
-      Logger.log(done);
     }
   }
   if (done) {  
@@ -3283,17 +3282,16 @@ function summarySheet(year,members,pickemsInclude,mnfInclude,survivorInclude) {
   if (survivorInclude == null) {
     survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
   }
-
+  let restoreNotes = false;
   let notesRange, notes, sheetName = 'SUMMARY';
   let sheet = ss.getSheetByName(sheetName);
   if (sheet == null) {
     ss.insertSheet(sheetName);
     sheet = ss.getSheetByName(sheetName);
   } else {
-    Logger.log(sheet.getRange(1,1,sheet.getMaxRows()-1,sheet.getMaxColumns()).getValues().flat().indexOf('NOTES'));
+    restoreNotes = true;
     notesRange = sheet.getRange(2,sheet.getRange(1,1,sheet.getMaxRows()-1,sheet.getMaxColumns()).getValues().flat().indexOf('NOTES')+1,sheet.getMaxRows()-1,1);
     notes = notesRange.getValues();
-    Logger.log(notes);
   }
   sheet.clear();
   
@@ -3349,7 +3347,9 @@ function summarySheet(year,members,pickemsInclude,mnfInclude,survivorInclude) {
   maxCols = sheet.getMaxColumns();
   
   sheet.getRange(1,1,1,len).setValues([headers]);
-  sheet.getRange(2,notesCol,notes.length,1).setValues(notes);
+  if(restoreNotes) {
+    sheet.getRange(2,notesCol,notes.length,1).setValues(notes);
+  }
   
   for ( let a = 0; a < len; a++ ) {
     sheet.setColumnWidth(a+1,headersWidth[a]);
@@ -4012,7 +4012,6 @@ function formCreate(auto,week,year,name) {
             if (week > survivorStart) {
               for (let a = 0; a < survivorMembers.length; a++) {
                 entry = null;
-                Logger.log(survivorMembers[a]);
                 if (included[a] == true) {
                   entry = nameQuestion.createChoice(survivorMembers[a],survivorPages[a]);
                 } else if (pickemsInclude == true) {
@@ -4052,8 +4051,10 @@ function formCreate(auto,week,year,name) {
       if (locked == false && (pickemsInclude == true || (survivorInclude == true && week == survivorStart))) {
         nameOptions.push(nameQuestion.createChoice('New User',newUserPage));
         nameQuestion.setHelpText('Select your name from the dropdown or select \'New User\' if you haven\'t joined yet.');
+      } else if (pickemsInclude == false && survivorInclude == true && week != survivorStart) {
+        nameQuestion.setHelpText('Select your name from the dropdown. If your name is not an option, then you were eliminated from the survivor pool.');
       } else {
-        nameQuestion.setHelpText('Select your name from the dropdown');
+        nameQuestion.setHelpText('Select your name from the dropdown.');
       }
       // Checks for nameOptions length and ensures there are valid names/navigation for pushing to the nameQuestion, though this is likely going to result in the inability to do the survivor pool correctly
       if (nameOptions.length == 0 || (nameOptions == 1 && survivorInclude == true)) {
@@ -4273,7 +4274,6 @@ function formCheckAlert() {
       }
 
       let submittedText = submittedTextOutput(week,members,missing);
-      Logger.log(submittedText);
       if (membersNew.length == 0) {
         let respondents;
         if (missing.length == 0) {
@@ -4476,9 +4476,8 @@ function dataTransfer(redirect,thursOnly) {
   } else {
     continueImport = true;
   }
-
+  let sheet, sheetName, thursRange, thursValues, thursMarked = false;
   if (continueImport) {
-
     ss.toast('Checking for received responses, missing members, duplicates, and new members');
     let formCheckAll = formCheck("all",members,week);
     
@@ -4486,10 +4485,8 @@ function dataTransfer(redirect,thursOnly) {
     let missing = formCheckAll[1];
     let membersNew = formCheckAll[2];
     let duplicates = formCheckAll[3];
-
-    let sheet, sheetName, thursRange, thursValues, thursMarked = false;
+    
     if (pickemsInclude == true) {
-      if (pickemsInclude == true) {
       if (week < 10) {
         sheetName = (year + '_0' + week);
       } else {
@@ -4506,12 +4503,10 @@ function dataTransfer(redirect,thursOnly) {
           // Checking for any populated Thursday games to retain those picks and overwrite after importing the rest of the picks.
           thursRange = ss.getRangeByName('NFL_'+year+'_THURS_PICKS_'+week);
           thursValues = thursRange.getValues();
-          Logger.log(thursValues);
-          for (let row = 0; row < thursValues.length && !thursMarked; row++) {
-            for (let col = 0; col < thursValues[row].length && !thursMarked; col++) {
+          for (let row = 0; row < thursValues.length; row++) {
+            for (let col = 0; col < thursValues[row].length; col++) {
               if (thursValues[row][col] !== '') {
-                thursMarked = true;
-                break; // Exit the loop if a non-blank cell is found
+                thursMarked = true; // Exit the loop if a non-blank cell is found
               }
             }
           }
@@ -4520,15 +4515,15 @@ function dataTransfer(redirect,thursOnly) {
           ss.toast('No Thursday games range found');
         }
       }
-    }
-    let thursOverwrite;
-    if (thursMarked) {
-      thursOverwrite = ui.alert('There are responses recorded for the Thursday games this week, do you want to allow the new submissions to be included for Thursday night football?\r\n\r\nNOTE: Selecting \'NO\' will mean new members\' picks will only be recorded for non-Thursday games.', ui.ButtonSet.YES_NO);
-      if (thursOverwrite == 'YES') {
-        thursMarked = false;
+      let thursOverwrite;
+      if (thursMarked == true) {
+        thursOverwrite = ui.alert('There are responses recorded for the Thursday games this week, do you want to allow the new submissions to be included for Thursday night football?\r\n\r\nNOTE: Selecting \'NO\' will mean new members\' picks will only be recorded for non-Thursday games.', ui.ButtonSet.YES_NO);
+        if (thursOverwrite == 'YES') {
+          thursMarked = false;
+        }
       }
     }
-
+    
     let textMissing = '';
     let textReceived = '';
     let transfer = false;
@@ -4604,7 +4599,7 @@ function dataTransfer(redirect,thursOnly) {
           } else if (missing.length == 3) {
             ui.alert(missing[0] + ', ' + missing[1] + ', and ' + missing[2] + ' are the only three who haven\'t responded.', ui.ButtonSet.OK);
           } else if (missing.length >= 4) {
-            ui.alert('These ' + missing.length + ' players haven\'t responded for week ' + week + ': \r\n.' + textMissing, ui.ButtonSet.OK);
+            ui.alert('These ' + missing.length + ' players haven\'t responded for week ' + week + ': \r\n' + textMissing, ui.ButtonSet.OK);
           }
           let promptText = 'Would you like to still import ';
           if (thursOnly == true) {
@@ -4671,13 +4666,14 @@ function dataTransfer(redirect,thursOnly) {
           ss.toast('Fetched response for ' + user);
             //(itemResponse.getItem().getType() == 'MULTIPLE_CHOICE' ? (' and the item\'s choices are ' + form.getItemById(itemResponse.getItem().getId()).getChoices()) : (' and it is a text box')));
         }
-          
-        // PICK 'EMS CONTENT
-        let sheetMembers, matchups, picks, tiebreaker, mnf, comment;
-        let blankMatchups = [];
-        let allPicks = [];
-        let tiebreakers = [];
-        let comments = [];
+        
+        if (pickemsInclude == true) {
+          // PICK 'EMS CONTENT
+          let sheetMembers, matchups, picks, tiebreaker, mnf, comment;
+          let blankMatchups = [];
+          let allPicks = [];
+          let tiebreakers = [];
+          let comments = [];
 
           sheetMembers = ss.getRangeByName('NAMES_'+year+'_'+week).getValues().flat();
           matchups = ss.getRangeByName('NFL_'+year+'_'+week).getValues().flat();
@@ -4835,11 +4831,11 @@ function dataTransfer(redirect,thursOnly) {
           }        
         }
       } else {
-        ss.toast('Canceled by user');
+        ss.toast('Canceled');
       }
     } else {
       ss.toast('Canceled');
-    }
+    } 
   } else {
     ss.toast('Canceled');
   }
