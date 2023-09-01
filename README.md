@@ -20,7 +20,7 @@ Lastly, there are some safeguards Google has in place to avoid allowing users to
 **Notable Changes**
 This newest update to version 2.0 includes the following new improved features/changes:
 - Creation of a **Drive Folder for storing Google Forms** (as there will be multiple, see next bullet)
-- A new Form for each week is created, rather than the same Form being cleared and re-created
+- **A new Form for each week is created**, rather than the same Form being cleared and re-created
   - This means that all previous picks and data will be backed up, so to speak, in a previous week Form
   - Be sure to get the shortened URL from the pop-up that occurs after Form creation (or find it in the CONFIG tab) to send to members
 - **Survivor pool ONLY option** (I had multiple requests for this, as many of you don’t want to do a weekly pick ‘ems)
