@@ -43,7 +43,7 @@ This newest update to version 2.0 includes the following new improved features/c
 
 ### **1. Example Sheets** - Screenshots of the output from a league done in 2021
 
-- NFL_OUTCOMES SHEET
+- NFL_OUTCOMES Sheet
   
 - WEEKLY Sheet
   
@@ -66,6 +66,11 @@ This newest update to version 2.0 includes the following new improved features/c
 -------------------------
 
 # **1. Example Sheets**
+
+<h3 align="center">NFL OUTCOMES Sheet</h3>
+<p align="center">
+<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-pickems-outcomes-sheet.png" width="600" alt="WEEKLY Sheet">
+</p>
 
 <h3 align="center">WEEKLY Sheet</h3>
 <p align="center">
@@ -219,6 +224,10 @@ Update your form to look like this, or whatever you prefer. The script will crea
  - You can manually disable survivor or pick ‘ems (or enable) through this sheet
  - Don’t edit the “SURVIVOR DONE” cell unless you’re having an issue (it’s formula-driven)
  - You can make the CONFIG sheet visible by going to the hamburger menu on the bottom and selecting it from the list (see red arrow in image below)
+<h3 align="center">CONFIG Sheet</h3>
+<p align="center">
+<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-pickems-config-sheet.png" width="600" alt="WEEKLY Sheet">
+</p>
 
 
 -------------------------
@@ -227,7 +236,7 @@ Update your form to look like this, or whatever you prefer. The script will crea
 Once the scripts have completed, you should have a new menu option on the top ribbon entitled “Picks”
 
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-picks-functions01.png?raw=true" width="600" alt="Functions menu">
+<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-picks-menu.png?raw=true" width="600" alt="Functions menu">
 </p>
 
 **Create Form:** This function will allow you to create a new form for the week, there are safety checks to ensure you don’t erase previous entry information and it allows you to decline creating a form for the proposed week and enter your own
