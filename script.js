@@ -1,6 +1,6 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.1 - 2023
+// v2.0 - 2023
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
@@ -230,6 +230,8 @@ function runFirst() {
           if (pickemsInclude == false) {
             survivor.activate();
           }
+          survivorEvalSheet(year,weeks,members,true);
+          Logger.log('Deployed Survivor Eval sheet');
         } else {
           try{
             ss.deleteSheet(ss.getSheetByName('SURVIVOR'));
@@ -293,6 +295,14 @@ function runFirst() {
       }
     }
   }
+}
+
+function survivorEvalFix() {
+  survivorEvalSheet(null,null,null,true);
+  Logger.log('Deploying Survivor Eval sheet');
+  let survivorDoneFormulaCell = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('SURVIVOR_DONE');
+  survivorDoneFormulaCell.setValue('=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))');
+  ss.toast('Created Survivor Eval sheet and reset CONFIG formula');
 }
 
 //------------------------------------------------------------------------
