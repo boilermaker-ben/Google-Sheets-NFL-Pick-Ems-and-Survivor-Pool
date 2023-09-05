@@ -201,24 +201,24 @@ Update your form to look like this, or whatever you prefer. The script will crea
 # **4. Usage**
 
 1. You’ll be guided through setting up the group. These questions will be asked:
- - Name of group customization (defaults to “NFL Pick ‘Ems” or “NFL Survivor Pool”)
- - Inclusion of pick ‘ems (in the event you want to only run a survivor league)
- - Inclusion of a Monday Night Football tally competition
- - Inclusion of a comments box in the Form
- - Inclusion of a survivor pool (will automatically skip if you don’t include pick ‘ems pool)
- - Timezone selection (currently will cycle through EDT, CDT, MDT, PDT only, defaults to EDT)
- - Locked membership (if you do or don’t want to allow users to enter their own name in the Form)
+ - **Timezone confirmation** (will prompt to correct and cancel setup if it's not set correctly)
+ - **Name of group** customization (defaults to “NFL Pick ‘Ems” or “NFL Survivor Pool”)
+ - **Inclusion of pick ‘ems** (in the event you want to only run a survivor league)
+ - **Inclusion of a Monday Night Football** tally competition
+ - **Inclusion of a comments** box in the Form
+ - **Inclusion of a survivor pool** (will automatically skip if you don’t include pick ‘ems pool)
+ - **Locked membership** (if you do or don’t want to allow users to enter their own name in the Form)
  - Creation of previous blank pick ‘ems weeks (for manually entering if you start this later in the season)
  - Form creation (to make the first week’s form upon completion of setup)
- - Initial member list (you can enter names separated by commas: “Bobby, Billy, George”
+ - **Initial member list** (you can enter names separated by commas: “Bobby, Billy, George”
 2. Weekly usage:
- - Share the Form with your group
- - Check responses via the menu and import picks (ideally before the Thursday night game, if present).
- - Through the weekend, as games are completed you should be able to run the “Check NFL Scores” function and import game outcomes via that method
+ - **Share the Form** with your group
+ - **Check responses** via the menu and **import picks** (ideally before the Thursday night game, if present).
+ - Through the weekend, as games are completed you should be able to run the “Check NFL Scores” function and **import game outcomes** via that method
  - Survivor Only: Alternatively, enter the game outcomes manually on the NFL Outcomes sheet
  - Pick ‘Ems: Alternatively, enter the game outcomes manually across the top of the correct sheet with the name following this format: “YYYY_WW” (year and week pick ‘ems sheet). Note: Be sure to enter a tiebreaker (sum of the last MNF game score) value in the cell below the one labeled “Tiebreaker” or the weekly winner won’t be declared!
- - Upon completing the week (usually after the MNF game), you can run the “Create Form” function again, read through the prompts, and start the process over again for the next week
- - Repeat
+ - Upon completing the week (usually after the MNF game), you can **run the “Create Form” function again**, read through the prompts, and start the process over again for the next week
+ - **Repeat**
 3. CONFIG sheet example below
  - CONFIG is hidden by default and isn’t required to run the group
  - Hopefully the only reason you bring it up is to fetch the short URL for the Google form
