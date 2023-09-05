@@ -1400,9 +1400,6 @@ function nflOutcomesUpdate(year,week,games) {
     }
   }  
 }
-function testConfig(){
-  configSheet(null,2023,1,18,true,true,true,true,1);
-}
 
 //------------------------------------------------------------------------
 function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart) {
