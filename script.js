@@ -126,7 +126,7 @@ function runFirst() {
     }
 
     // Prompts for time zone (USA only)
-    let timezone = 'EST';
+    let timezone = 'EDT';
     let timezoneCheck = ui.alert('TIMEZONE\r\n\r\nCurrently this only supports United States time zones and will default to EASTERN time.\r\n\r\nAre you located in the EASTERN time zone?', ui.ButtonSet.YES_NO);
     if ( timezoneCheck == ui.Button.NO) {
       timezoneCheck = ui.alert('Are you located in the CENTRAL time zone?', ui.ButtonSet.YES_NO);
