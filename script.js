@@ -1,6 +1,6 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.0 - 2023
+// v2.2 - 2023
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
@@ -4003,18 +4003,10 @@ function formCreate(auto,week,year,name) {
         ss.toast('Created survivor question(s)');
       } else if (pickemsInclude == true) {
         for (let a = 0; a < members.length; a++) {
-          entry = null;
-          if (commentsInclude == true && pickemsInclude == true) {
-            entry = nameQuestion.createChoice(members[a],FormApp.PageNavigationType.CONTINUE);
-          } else if (commentsInclude == false) {
-            entry = nameQuestion.createChoice(members[a],FormApp.PageNavigationType.SUBMIT);
-          }
-          if (entry != null) {
-            nameOptions.push(entry);
-          }
+          entry = nameQuestion.createChoice(members[a],FormApp.PageNavigationType.SUBMIT);
+          nameOptions.push(entry);
         }
       }
-
 
       if (locked == false && (pickemsInclude == true || (survivorInclude == true && week == survivorStart))) {
         nameOptions.push(nameQuestion.createChoice('New User',newUserPage));
@@ -4025,7 +4017,7 @@ function formCreate(auto,week,year,name) {
         nameQuestion.setHelpText('Select your name from the dropdown.');
       }
       // Checks for nameOptions length and ensures there are valid names/navigation for pushing to the nameQuestion, though this is likely going to result in the inability to do the survivor pool correctly
-      if (nameOptions.length == 0 || (nameOptions == 1 && survivorInclude == true)) {
+      if (nameOptions.length == 0 || (nameOptions.length == 1 && survivorInclude == true)) {
         for (let a = 0; a < members.length; a++) {
           nameOptions.push(nameQuestion.createChoice(members[a],FormApp.PageNavigationType.SUBMIT));
         }
