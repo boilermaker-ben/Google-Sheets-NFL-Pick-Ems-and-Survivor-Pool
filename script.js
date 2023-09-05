@@ -1,6 +1,6 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.0 - 2023
+// v2.1 - 2023
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
@@ -17,6 +17,7 @@ function runFirst() {
   const weeks = fetchWeeks();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ui = SpreadsheetApp.getUi();
+  const tz = ss.getSpreadsheetTimeZone();
   
   // Default group name
   let name = 'NFL Pick \'Ems';
@@ -29,6 +30,15 @@ function runFirst() {
   let cancel = false;
   const cancelText = 'Setup canceled by user. Try again later.';
   if ( start == ui.Button.OK) {
+    
+    // Confirm timezone setting before continuing
+    let timeZonePrompt = ui.alert('TIMEZONE\r\n\r\nThe timezone you\'re currently using is ' + tz + '. Is this correct?', ui.ButtonSet.YES_NO);
+    if ( timeZonePrompt != 'YES') {
+      let timeZoneFixPrompt = ui.alert('FIX TIMEZONE\r\n\r\nFollow these steps to change your projects time zone:\r\n\r\n1\. Return to the script editor\r\n2\. Select the gear icon on the left menu\r\n3\. Use the drop-down to select the correct timezone\r\n4\. Restart the script by clicking \'Run\' again', ui.ButtonSet.OK);
+      ss.toast('Canceled due to incorrect time zone');
+      throw new Error('Canceled during time zone confirmation question');
+    }
+    
     // Prompts to allow the user to create a league/pool/group name [defaults to NFL Pick 'Ems]
     let namePrompt = ui.alert('CUSTOMIZE NAME\r\n\r\nThe default name of the forms created will be called \"NFL Pick \'Ems\" or \"NFL Survivor Pool\", depending on your selections later. Do you want to change the name?', ui.ButtonSet.YES_NO);
     if ( namePrompt == ui.Button.YES) {
@@ -73,7 +83,7 @@ function runFirst() {
 
     // Prompts for the inclusion of a pick 'ems contest
     let pickemsInclude = true;
-    let pickemsCheck = ui.alert('PICK \'EMS\r\n\r\nThis script is intended to be used for running a weekly straight up pick \'ems style pool, but can be used for only the survivor pool if desired. Do you intend to run a weekly pick \'ems pool?', ui.ButtonSet.YES_NO);
+    let pickemsCheck = ui.alert('PICK \'EMS\r\n\r\nThis script is intended to be used for running a weekly straight up pick \'ems style pool, but can be exclusively used for a survivor pool if desired.\r\n\r\nDo you intend to run a weekly pick \'ems pool?', ui.ButtonSet.YES_NO);
     if ( pickemsCheck == ui.Button.NO) {
       pickemsInclude = false;
       if (name == 'NFL Pick \'Ems') {
@@ -125,38 +135,6 @@ function runFirst() {
       }
     }
 
-    // Prompts for time zone (USA only)
-    let timezone = 'EDT';
-    let timezoneCheck = ui.alert('TIMEZONE\r\n\r\nCurrently this only supports United States time zones and will default to EASTERN time.\r\n\r\nAre you located in the EASTERN time zone?', ui.ButtonSet.YES_NO);
-    if ( timezoneCheck == ui.Button.NO) {
-      timezoneCheck = ui.alert('Are you located in the CENTRAL time zone?', ui.ButtonSet.YES_NO);
-      if ( timezoneCheck == ui.Button.NO) {
-        timezoneCheck = ui.alert('Are you located in the MOUNTAIN time zone?', ui.ButtonSet.YES_NO);
-        if ( timezoneCheck == ui.Button.NO) {
-          timezoneCheck = ui.alert('Are you located in the PACIFIC time zone?\r\n\r\n\(Will defualt to Eastern Time if you select \'No\'\)', ui.ButtonSet.YES_NO);
-          if ( timezoneCheck == ui.Button.YES) {
-            timezone = 'PDT';
-          } else if ( timezoneCheck != ui.Button.YES && timezoneCheck != ui.Button.NO) {
-            cancel = true;
-          }
-        } else if ( timezoneCheck != ui.Button.YES && timezoneCheck != ui.Button.NO) {
-          cancel = true;
-        } else {
-          timezone = 'MDT';
-        }
-      } else if ( timezoneCheck != ui.Button.YES && timezoneCheck != ui.Button.NO) {
-        cancel = true;
-      } else {
-        timezone = 'CDT';
-      }
-    } else if ( timezoneCheck != ui.Button.YES && timezoneCheck != ui.Button.NO ) {
-      cancel = true;
-    }
-    if (cancel == true) {
-      ui.alert(cancelText, ui.ButtonSet.OK);
-      throw new Error('Canceled during timezone question'); 
-    }
-
     // Prompts for locking the number of participants
     let lockMembers = true;
     let lockMembersCheck = ui.alert('OPEN MEMBERSHIP\r\n\r\nAllow new members to be added to the pool through the Google Form?\r\n\r\n\(This can be changed later if you\'re not sure\)', ui.ButtonSet.YES_NO);
@@ -190,22 +168,21 @@ function runFirst() {
     let members = memberList();
 
     // Final prompt to start the longer script
-    let text = 'Alright, that\'s it, now the script will do its thing!\r\n\r\nName: \"' + name + '\"\r\nPick \'Ems Pool: ' + (pickemsInclude==true?'YES':'NO');
+    let text = 'Alright, that\'s it, now the script will do its thing!\r\n\r\nTimezone: ' + tz + '\r\nName: \"' + name + '\"\r\nPick \'Ems Pool: ' + (pickemsInclude==true?'YES':'NO');
     if (pickemsInclude == true) {
       text = text + '\r\nMNF Pool: ' + (mnfInclude==true?'YES':'NO') + '\r\nComments: ' + (commentInclude==true?'YES':'NO');
     }
-    text = text + '\r\nSurvivor Pool: ' + (survivorInclude==true?'YES':'NO') + '\r\nTimezone: ' + (timezone=='EDT'?'EASTERN':timezone=='CDT'?'CENTRAL':timezone=='MDT'?'MOUNTAIN':timezone=='PDT'?'PACIFIC':'Unknown') + '\r\nMembers: ' + (lockMembers==true?'LOCKED':'UNLOCKED') + (week>1?('\r\nCreate Previous Weeks: ' + (createOldWeeks==true?'YES':'NO')):'') + '\r\nCreate Initial Form: ' + (createFormConfirm==true?'YES':'NO') + '\r\nInitial Member Count: ' + members.length;
+    text = text + '\r\nSurvivor Pool: ' + (survivorInclude==true?'YES':'NO') + '\r\nMembers: ' + (lockMembers==true?'LOCKED':'UNLOCKED') + (week>1?('\r\nCreate Previous Weeks: ' + (createOldWeeks==true?'YES':'NO')):'') + '\r\nCreate Initial Form: ' + (createFormConfirm==true?'YES':'NO') + '\r\nInitial Member Count: ' + members.length;
     let finish = ui.alert(text, ui.ButtonSet.OK_CANCEL);
     if (finish == ui.Button.OK) {    
       // Pull in NFL Schedule data and create sheet
-      fetchNFL(timezone);
+      fetchNFL();
       Logger.log('Fetched NFL Schedule');      
       
       // Run through all sheet information population
       try {
-        Logger.log(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart,timezone);
         // Creates Form Sheet (calls function)
-        let config = configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart,timezone);
+        let config = configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart);
         Logger.log('Deployed Config sheet');        
 
         // Creates Member sheet (calling function)
@@ -777,15 +754,10 @@ function fetchTeamsESPN() {
 
 //------------------------------------------------------------------------
 // NFL TEAM INFO - script to fetch all NFL data for teams
-function fetchNFL(timezone) {
+function fetchNFL() {
   // Calls the linked spreadsheet
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-    
-  if ( timezone == null ){
-    timezone = ss.getRangeByName('TIMEZONE').getValue();
-  }
-  let tzOffsets = {'EDT':0,'CDT':-1,'MDT':-2,'PDT':-3};
-  let offset = tzOffsets[timezone];
+
   // Declaration of script variables
   let abbr, name, maxRows, maxCols;
   const year = fetchYear();
@@ -867,7 +839,7 @@ function fetchNFL(timezone) {
             home.push(1);
             date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
             dates.push(date);
-            hour = date.getHours()+offset;
+            hour = date.getHours();
             hours.push(hour);
             minute = date.getMinutes();
             minutes.push(minute);
@@ -876,7 +848,7 @@ function fetchNFL(timezone) {
             home.push(0);
             date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
             dates.push(date);
-            hour = date.getHours()+offset;
+            hour = date.getHours();
             hours.push(hour);
             minute = date.getMinutes();
             minutes.push(minute);
@@ -1428,9 +1400,12 @@ function nflOutcomesUpdate(year,week,games) {
     }
   }  
 }
+function testConfig(){
+  configSheet(null,2023,1,18,true,true,true,true,1);
+}
 
 //------------------------------------------------------------------------
-function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart,timezone) {
+function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart) {
   
   let ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -1460,16 +1435,14 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclu
     if (commentInclude == null) {
       commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
     }
-    if (timezone == null) {
-      timezone = ss.getRangeByName('TIMEZONE').getValue();
-    }
   }
   catch (err) {
     ss.toast('Error with getting information from CONFIG sheet or from runFirst script input, you may need to recreate everything or look at your version history');
     Logger.log('sheetSheet Error: ' + err.stack);
   }
-  let array = [['NAME',name],['ACTIVE WEEK',week],['TOTAL WEEKS',weeks],['YEAR',year],['PICK\ \'EMS',pickemsInclude],['MNF',mnfInclude],['COMMENTS',commentInclude],['SURVIVOR',survivorInclude],['SURVIVOR DONE','=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))'],['SURVIVOR START',survivorStart],['TIMEZONE',timezone]];
+  let array = [['NAME',name],['ACTIVE\ WEEK',week],['TOTAL\ WEEKS',weeks],['YEAR',year],['PICK\ \'EMS',pickemsInclude],['MNF',mnfInclude],['COMMENTS',commentInclude],['SURVIVOR',survivorInclude],['SURVIVOR\ DONE','=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))'],['SURVIVOR\ START',survivorStart]];
   let endData = array.length;
+  let arrayNamedRanges = ['NAME','WEEK','WEEKS','YEAR','PICKEMS_PRESENT','MNF_PRESENT','COMMENTS_PRESENT','SURVIVOR_PRESENT','SURVIVOR_DONE','SURVIVOR_START'];
 
   // Fix total rows and columns
   if(sheet.getMaxRows() > (endData + weeks + 2)) {
@@ -1494,7 +1467,7 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclu
     ss.setNamedRange('FORM_WEEK_'+a,sheet.getRange(a+(endData+2),2));
     weeksArr.push(a);
   }
-  
+
   // Setting values and named ranges of Config sheet
   sheet.getRange(endData+1,2).setValue('ID');
   sheet.getRange(endData+2,2).setValue(ss.getId());
@@ -1502,24 +1475,15 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclu
   sheet.getRange(endData+2,3).setValue(ss.getUrl().slice(0,-5));
   sheet.getRange(endData+1,4).setValue('EDITABLE');
   sheet.getRange(endData+2,4).setValue(ss.getUrl()); 
-  ss.setNamedRange('NAME',sheet.getRange(1,2));
-  ss.setNamedRange('WEEK',sheet.getRange(2,2));
-  ss.setNamedRange('WEEKS',sheet.getRange(3,2));
-  ss.setNamedRange('YEAR',sheet.getRange(4,2));
-  ss.setNamedRange('PICKEMS_PRESENT',sheet.getRange(5,2));
-  ss.setNamedRange('MNF_PRESENT',sheet.getRange(6,2));
-  ss.setNamedRange('COMMENTS_PRESENT',sheet.getRange(7,2));
-  ss.setNamedRange('SURVIVOR_PRESENT',sheet.getRange(8,2));
-  ss.setNamedRange('SURVIVOR_DONE',sheet.getRange(9,2));
-  ss.setNamedRange('SURVIVOR_START',sheet.getRange(10,2));
-  ss.setNamedRange('TIMEZONE',sheet.getRange(11,2));
+  // Sets all named ranges of those values in array from above
+  for (let a = 0; a < arrayNamedRanges.length; a++) {
+    ss.setNamedRange(arrayNamedRanges[a],sheet.getRange(arrayNamedRanges.indexOf(arrayNamedRanges[a])+1,2));
+  }
 
   // Rules for dropdowns on Config sheet
   let rule = SpreadsheetApp.newDataValidation().requireValueInList(weeksArr, true).build();
   sheet.getRange(2,2).setDataValidation(rule);
   
-  rule = SpreadsheetApp.newDataValidation().requireValueInList(['EDT','CDT','MDT','PDT'], true).build();
-  sheet.getRange(endData,2).setDataValidation(rule);
   rule = SpreadsheetApp.newDataValidation().requireValueInList([true,false], true).build();
   let range = sheet.getRange(5,2,4,1);
   range.setDataValidation(rule);
@@ -3673,16 +3637,13 @@ function formCreate(auto,week,year,name) {
   if (pickemsInclude == true || (survivorInclude == true && survivorStart <= week)) {
   
     // Fetch update to the NFL data to ensure most recent schedule
-    let timezone = ss.getRangeByName('TIMEZONE').getValue();
-    let timezoneFull = {'EDT':'Eastern','CDT':'Central','MDT':'Mountain','PDT':'Pacific'};
-    let timezoneText = timezoneFull[timezone];
     let data;  
     if ( auto != true && week != 1) {
       try { 
         data = ss.getRangeByName('NFL_' + year).getValues();
-        let refreshNFLPrompt = ui.alert('You have existing NFL schedule data, do you want to refresh the schedule data?', ui.ButtonSet.YES_NO);
+        let refreshNFLPrompt = ui.alert('Do you want to refresh the NFL schedule data?\r\n\r\n(Only necessary when NFL schedule changes occur)', ui.ButtonSet.YES_NO);
         if (refreshNFLPrompt == 'YES') {
-          fetchNFL(timezone);
+          fetchNFL();
         }
       }
       catch (err) {
@@ -3830,7 +3791,7 @@ function formCreate(auto,week,year,name) {
       let nameQuestion, day, time, minutes;
       // Update form title, ensure description and confirmation are set
       form.setTitle(name + ' - Week ' + week + ' - ' + year)
-        .setDescription('Select the winner of each game. Kickoff times are shown in ' + timezoneText + ' time.\r\n\r\nGood luck!')
+        .setDescription('Select who you believe will win each game.\r\n\r\nGood luck!')
         .setConfirmationMessage('Thanks for responding!')
         .setShowLinkToRespondAgain(false)
         .setAllowResponseEdits(false)
