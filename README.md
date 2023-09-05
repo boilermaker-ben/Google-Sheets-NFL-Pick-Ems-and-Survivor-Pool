@@ -254,6 +254,7 @@ Once the scripts have completed, you should have a new menu option on the top ri
 Hopeful improvements for future versions:
 
 - Google User confirmation (auto-detection for submissions, may be above my head)
+- Reorganize member names alphabetically
 - Add column for participants in each weekly set of games
 - Picking against the spread rather than straight up option  (tough due to timing of when people submit and the changing nature of lines)
 - More metrics (suggestions welcome!)
