@@ -302,7 +302,7 @@ function survivorEvalFix() {
   Logger.log('Deploying Survivor Eval sheet');
   let survivorDoneFormulaCell = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('SURVIVOR_DONE');
   survivorDoneFormulaCell.setValue('=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))');
-  ss.toast('Created Survivor Eval sheet and reset CONFIG formula');
+  SpreadsheetApp.getActiveSpreadsheet().toast('Created Survivor Eval sheet and reset CONFIG formula');
 }
 
 //------------------------------------------------------------------------
