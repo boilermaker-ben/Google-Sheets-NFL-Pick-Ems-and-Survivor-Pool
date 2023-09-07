@@ -2692,6 +2692,7 @@ function winnersFormulas(sheet,weeks,year) {
 function allFormulasUpdate(){
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
+  const mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
   const members = memberList();
   const weeks = fetchWeeks();
   const year = fetchYear();
@@ -2713,11 +2714,13 @@ function allFormulasUpdate(){
     maxCols = sheet.getMaxColumns();
     overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',true);
     overallMainFormulas(sheet,totalMembers,weeks,year,'PCT',true);
-
-    sheet = ss.getSheetByName('MNF');
-    maxCols = sheet.getMaxColumns();
-    overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',false);
-    overallMainFormulas(sheet,totalMembers,weeks,year,'MNF',false);
+    
+    if (mnfInclude == true) {
+      sheet = ss.getSheetByName('MNF');
+      maxCols = sheet.getMaxColumns();
+      overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',false);
+      overallMainFormulas(sheet,totalMembers,weeks,year,'MNF',false);
+    }
 
     sheet = ss.getSheetByName('WINNERS');
     winnersFormulas(sheet,weeks,year);
