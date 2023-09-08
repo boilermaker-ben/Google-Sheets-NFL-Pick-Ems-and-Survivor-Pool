@@ -191,7 +191,7 @@ function runFirst() {
         
         members = memberList();
         // Creates winner selection sheet (NFL Outcomes)
-        nflOutcomes(year);
+        nflOutcomesSheet(year);
         Logger.log('Deployed NFL Outcomes sheet');
         if (pickemsInclude == true) {
           // Creates Overall Record Sheet (calling function)
@@ -491,9 +491,6 @@ function memberAdd(name) {
   if (pickemsInclude == true) {
     mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
   }
-  const year = fetchYear();      
-  const week = fetchWeek(); 
-  const weeks = fetchWeeks();
   let cancel = true;
   if (name == null) {
     prompt = ui.prompt('Please enter one member or a comma-separated list of members to add:', ui.ButtonSet.OK_CANCEL);
@@ -992,7 +989,7 @@ function fetchNFL() {
 // NFL ACTIVE WEEK SCORES - script to check and pull down any completed matches and record them to the weekly sheet
 function recordNFLWeeklyScores(){
   
-  const outcomes = fetchNFLOutcomes();
+  const outcomes = fetchNFLWeeklyScores();
   const week = outcomes[0];
   const games = outcomes[1];
   const completed = outcomes[2];
@@ -1006,6 +1003,7 @@ function recordNFLWeeklyScores(){
   const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
   const survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
   const year = fetchYear();
+  let outcomesRecorded = [];
   let range;
   let weekMask = week < 10 ? '0' + week : week;
   let alert = 'CANCEL';
@@ -1085,14 +1083,14 @@ function recordNFLWeeklyScores(){
       range = ss.getRangeByName('NFL_'+year+'_OUTCOMES_'+week);
       outcomesRecorded = range.getValues().flat();
       let arr = [];
-      for (let a = 0; a < maxGames; a++) {
+      for (let a = 0; a < away.length; a++) {
         arr.push([null]);
-        for (let b = 0; b < away.length; b++) {
+        for (let b = 0; b < data.length; b++) {
           if (data[b][0] == away[a] && data[b][1] == home[a]) {
-            if (data[b][2] != null && outcomesRecorded[a] == null) {
+            if (data[b][2] != null  && (outcomesRecorded[a] == null || outcomesRecorded[a] == '')) {
               arr[a] = [data[b][2]];  
             } else {
-              arr[a] = outcomesRecorded[a];
+              arr[a] = [outcomesRecorded[a]];
             }
           }
         }        
@@ -1120,65 +1118,65 @@ function recordNFLWeeklyScores(){
 
 //------------------------------------------------------------------------
 // NFL OUTCOMES - Records the winner and combined tiebreaker for each matchup on the NFL_{year} sheet
-function fetchNFLOutcomes(){
+function fetchNFLWeeklyScores(){
   const ui = SpreadsheetApp.getUi();
-  const obj = JSON.parse(UrlFetchApp.fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'));
-  let games = obj.events;
-
-  let year = fetchYear();
-  if (year == null) {
-    year = obj.season.year;
+  let obj = {};
+  try{
+    obj = JSON.parse(UrlFetchApp.fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'));
   }
-  let week = obj.week.number;
+  catch (err) {
+    ui.alert('ESPN API isn\'t responding currently, try again in a moment.');
+    Logger.log(err.stack);
+  }
+  if (Object.keys(obj).length > 0) {
+    let games = obj.events;
 
-  // Checks if preseason, if not, pulls in score data
-  if(obj.events[0].season.slug == 'preseason'){
-    ui.alert('Regular season not yet started.\r\n\r\n Currently preseason is still underway.', ui.ButtonSet.OK);
-  } else {
-    // Loop through games provided and creates an array for placing
-    let headers = ['week','home','homeScore','away','awayScore','winner','tiebreaker'];
-    let outcomes = [];
-    let all = [];
-    let count = 0;
-    let away, awayScore,home, homeScore,tiebreaker,winner,competitors;
-    for (let a = 0; a < games.length; a++){
-      awayScore = '';
-      homeScore = '';
-      tiebreaker = '';
-      winner = '';
-      competitors = games[a].competitions[0].competitors;
-      away = (competitors[1].homeAway == 'away' ? competitors[1].team.abbreviation : competitors[0].team.abbreviation);
-      home = (competitors[0].homeAway == 'home' ? competitors[0].team.abbreviation : competitors[1].team.abbreviation);
-      if (games[a].status.type.completed == true) {
-        count++;
-        awayScore = parseInt(competitors[1].homeAway == 'away' ? competitors[1].score : competitors[0].score);
-        homeScore = parseInt(competitors[0].homeAway == 'home' ? competitors[0].score : competitors[1].score);
-        tiebreaker = awayScore + homeScore;
-        winner = (competitors[0].winner == true ? competitors[0].team.abbreviation : (competitors[1].winner == true ? competitors[1].team.abbreviation : 'TIE'));
-        outcomes.push(away,home,winner,tiebreaker);
-      }
-      all.push(outcomes);
+    let year = fetchYear();
+    if (year == null) {
+      year = obj.season.year;
     }
-    // Sets info variables for passing back to any calling functions
-    let remaining = games.length - count;
-    let completed = games.length - remaining;
-    
-    // Loop to add any empty rows of data
-    for (let a = all.length; a < 16; a++) {
-      outcomes = [week];
-      for (let b = 1; b < headers.length; b++) {
-        outcomes.push('');
+    let week = obj.week.number;
+
+    // Checks if preseason, if not, pulls in score data
+    if(obj.events[0].season.slug == 'preseason'){
+      ui.alert('Regular season not yet started.\r\n\r\n Currently preseason is still underway.', ui.ButtonSet.OK);
+    } else {
+      // Loop through games provided and creates an array for placing
+      let outcomes = [];
+      let all = [];
+      let count = 0;
+      let away, awayScore,home, homeScore,tiebreaker,winner,competitors;
+      for (let a = 0; a < games.length; a++){
+        awayScore = '';
+        homeScore = '';
+        tiebreaker = '';
+        winner = '';
+        competitors = games[a].competitions[0].competitors;
+        away = (competitors[1].homeAway == 'away' ? competitors[1].team.abbreviation : competitors[0].team.abbreviation);
+        home = (competitors[0].homeAway == 'home' ? competitors[0].team.abbreviation : competitors[1].team.abbreviation);
+        if (games[a].status.type.completed == true) {
+          count++;
+          awayScore = parseInt(competitors[1].homeAway == 'away' ? competitors[1].score : competitors[0].score);
+          homeScore = parseInt(competitors[0].homeAway == 'home' ? competitors[0].score : competitors[1].score);
+          tiebreaker = awayScore + homeScore;
+          winner = (competitors[0].winner == true ? competitors[0].team.abbreviation : (competitors[1].winner == true ? competitors[1].team.abbreviation : 'TIE'));
+          outcomes.push(away,home,winner,tiebreaker);
+          all.push(outcomes);
+        }      
       }
-      all.push(outcomes);
+      // Sets info variables for passing back to any calling functions
+      let remaining = games.length - count;
+      let completed = games.length - remaining;
+
+      // Outputs total matches, how many completed, and how many remaining, and all matchups with outcomes decided;
+      return [week,games.length,completed,remaining,all];
     }
-    // Outputs total matches, how many completed, and how many remaining;
-    return [week,games.length,completed,remaining,all];
   }
 }
 
 //------------------------------------------------------------------------
 // SHEET FOR LOGGING ALL OUTCOMES - creates a set of columns (one per week) on a sheet with a dedicated data validation rule per game to select from if not using import features
-function nflOutcomes(year) {
+function nflOutcomesSheet(year) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   if ( year == null ) { 
@@ -1318,14 +1316,14 @@ function nflOutcomes(year) {
 
 //------------------------------------------------------------------------
 // UPDATE OUTCOMES - Updates the data validation, color scheme, and matchups for a specific week on the NFL Winners sheet
-function nflOutcomesUpdate(year,week,games) {
+function nflOutcomesSheetUpdate(year,week,games) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (year == null) {
     year = fetchYear();
   }
   let sheet = ss.getSheetByName('NFL_OUTCOMES');
   if (sheet == null) {
-    sheet = nflOutcomes(year);
+    sheet = nflOutcomesSheet(year);
   }
 
   let maxCols = sheet.getMaxColumns();
@@ -2175,7 +2173,7 @@ function weeklySheet(year,week,members,dataRestore) {
     Logger.log('ERROR: Previous data not transferred or didn\'t exist! Undo immediately');
     ss.toast('ERROR: Previous data not transferred or didn\'t exist! Undo immediately');
   }
-  nflOutcomesUpdate(year,week,exportMatches);
+  nflOutcomesSheetUpdate(year,week,exportMatches);
   return sheet;
 }
 
@@ -3572,7 +3570,6 @@ function formFetch(name,year,week,reset) {
 // CREATE FORMS FOR CORRECT WEEK BY CHECKING RECORDED GAMES - Tool to create form and populate with matchups as needed, creates custom survivor selection drop-downs for each member
 function formCreateAuto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ui = SpreadsheetApp.getUi();
   let markedWeek = ss.getRangeByName('WEEK').getValue();
   let markedWeekForm = ss.getRangeByName('FORM_WEEK_'+markedWeek).getValue();
   let year = fetchYear();
@@ -3642,7 +3639,8 @@ function formCreate(auto,week,year,name) {
   let survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
   let survivorStart = ss.getRangeByName('SURVIVOR_START').getValue();
   let survivorDone = ss.getRangeByName('SURVIVOR_DONE').getValue();
-  
+  let form, formId;
+
   // Begin creation of new form if either pickems or an active survivor pool is present
   if (pickemsInclude == true || (survivorInclude == true && survivorStart <= week)) {
   
@@ -3791,7 +3789,7 @@ function formCreate(auto,week,year,name) {
 
       let formFetchOutput = formFetch(name,year,week,true);
       form = formFetchOutput[0];
-      let formId = form.getId();
+      formId = form.getId();
       // urlFormEdit = form.shortenFormUrl(form.getEditUrl());
       form.deleteItem(form.getItems()[0]);
       let urlFormPub = form.shortenFormUrl(form.getPublishedUrl());
@@ -4206,6 +4204,7 @@ function formCheckAlert() {
   const survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();  
   let week = fetchWeek();
   let retry = false;
+  let survivorMembers, survivorMembersEliminated;
   try {
     let formId = ss.getRangeByName('FORM_WEEK_'+week).getValues()[0][0];
     if ( configSheet == null || formId == null ) {
@@ -4213,17 +4212,25 @@ function formCheckAlert() {
     } else {
       let members = memberList();
       let totalMembers = members.length;
-      let missing = formCheck("missing",members,week);
-      let membersNew = formCheck("new",members,week);
+
+      let formCheckAll = formCheck("all",members,week);
+      let missing = formCheckAll[1];
+      let membersNew = formCheckAll[2];
+
       Logger.log('Current Total: ' + totalMembers);
       if (membersNew.length > 0) {
         Logger.log('New Members: ' + membersNew);
       }
-      Logger.log('Missing: ' + missing);
+      if (missing.length > 0) {
+        Logger.log('Missing: ' + missing);
+      } else {
+        Logger.log('All added members responses recorded');
+      }
       
+      // Removes eliminated members from the "missing" array if they're eliminated from survivor and no pick 'ems present
       if (survivorInclude == true && pickemsInclude == false) {
-        let survivorMembers = ss.getRangeByName('SURVIVOR_EVAL_NAMES').getValues().flat();
-        let survivorMembersEliminated = ss.getRangeByName('SURVIVOR_EVAL_ELIMINATED').getValues().flat();
+        survivorMembers = ss.getRangeByName('SURVIVOR_EVAL_NAMES').getValues().flat();
+        survivorMembersEliminated = ss.getRangeByName('SURVIVOR_EVAL_ELIMINATED').getValues().flat();
         for (let a = 0; a < survivorMembers.length; a++) {
           if (survivorMembersEliminated[a] > 0) {
             try {
@@ -4354,6 +4361,21 @@ function formCheckAlert() {
             members = memberList();
             totalMembers = members.length;
             missing = formCheck("missing",members,week);
+            
+            // Removes eliminated members from the "missing" array if they're eliminated from survivor and no pick 'ems present
+            if (survivorInclude == true && pickemsInclude == false) {
+              for (let a = 0; a < survivorMembers.length; a++) {
+                if (survivorMembersEliminated[a] > 0) {
+                  try {
+                    missing.splice(missing.indexOf(survivorMembers[a]),1);
+                  }
+                  catch (err) {
+                    Logger.log('Could not find/remove entry from user ' + survivorMembers[a] + ' from missing array');
+                  }
+                }
+              }
+            }
+
             Logger.log('Total: ' + totalMembers);
             Logger.log('Missing: ' + missing);
             submittedTextOutput(week,members,missing);
@@ -4408,21 +4430,6 @@ function dataTransfer(redirect,thursOnly) {
   const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
   const survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
   const commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
-
-  if (survivorInclude == true && pickemsInclude == false) {
-    let survivorMembers = ss.getRangeByName('SURVIVOR_EVAL_NAMES').getValues().flat();
-    let survivorMembersEliminated = ss.getRangeByName('SURVIVOR_EVAL_ELIMINATED').getValues().flat();
-    for (let a = 0; a < survivorMembers.length; a++) {
-      if (survivorMembersEliminated[a] > 0) {
-        try {
-          missing.splice(missing.indexOf(survivorMembers[a]),1);
-        }
-        catch (err) {
-          Logger.log('Could not find/remove entry from user ' + survivorMembers[a] + ' from missing array');
-        }
-      }
-    }
-  }
   let continueImport = false;
   if (redirect == null) {
     let weekPrompt = ui.alert('Import picks from week ' + week + '?\r\n\r\nSelectiong \'NO\' will allow you to select a different week', ui.ButtonSet.YES_NO_CANCEL);
@@ -4449,6 +4456,22 @@ function dataTransfer(redirect,thursOnly) {
     let membersNew = formCheckAll[2];
     let duplicates = formCheckAll[3];
     
+    // Removes eliminated members from the "missing" array if they're eliminated from survivor and no pick 'ems present
+    if (survivorInclude == true && pickemsInclude == false) {
+      let survivorMembers = ss.getRangeByName('SURVIVOR_EVAL_NAMES').getValues().flat();
+      let survivorMembersEliminated = ss.getRangeByName('SURVIVOR_EVAL_ELIMINATED').getValues().flat();
+      for (let a = 0; a < survivorMembers.length; a++) {
+        if (survivorMembersEliminated[a] > 0) {
+          try {
+            missing.splice(missing.indexOf(survivorMembers[a]),1);
+          }
+          catch (err) {
+            Logger.log('Could not find/remove entry from user ' + survivorMembers[a] + ' from missing array');
+          }
+        }
+      }
+    }
+
     if (pickemsInclude == true) {
       if (week < 10) {
         sheetName = (year + '_0' + week);
