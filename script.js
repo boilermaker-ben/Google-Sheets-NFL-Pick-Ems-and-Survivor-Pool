@@ -319,6 +319,7 @@ function createMenuUnlocked(trigger) {
         .addItem('Import Thursday Picks','dataTransferTNF')
         .addSeparator()
         .addItem('Add Member(s)','memberAdd')
+        .addItem('Remove Member','memberRemove')
         .addItem('Lock Members','createMenuLockedWithTrigger')
         .addSeparator()
         .addItem('Update NFL Schedule', 'fetchNFL')
@@ -333,6 +334,7 @@ function createMenuUnlocked(trigger) {
         .addItem('Import Picks','dataTransfer')
         .addSeparator()
         .addItem('Add Member(s)','memberAdd')
+        .addItem('Remove Member','memberRemove')
         .addItem('Lock Members','createMenuLockedWithTrigger')
         .addSeparator()
         .addItem('Update NFL Schedule', 'fetchNFL')
@@ -579,6 +581,84 @@ function memberAdd(name) {
     ss.toast('No new members added.');
   }
 }
+
+
+//------------------------------------------------------------------------
+// MEMBERS Addition for adding new members later in the season
+function memberRemove(name) {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let prompt;
+  let membersSheet = ss.getSheetByName('MEMBERS');
+  let range = ss.getRangeByName('MEMBERS');
+  let members = range.getValues();
+  const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
+  const survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
+  let mnfInclude;
+  if (pickemsInclude == true) {
+    mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
+  }
+  let cancel = true;
+  if (name == null) {
+    prompt = ui.prompt('Please type the name of the member you wish to remove:', ui.ButtonSet.OK_CANCEL);
+    name = prompt.getResponseText().trim();
+    if (prompt.getSelectedButton() == 'OK' && prompt.getResponseText() != null) {
+      cancel = false;
+    } else {
+      ss.toast('No response was registered, try running again and entering the name of the member you wish to remove.');
+    }
+  } else {
+    cancel = false;
+  }
+  if (name != null && cancel == false && members.flat().indexOf(name) >= 0) {
+    prompt = ui.alert('Found member named ' + name + ', are you sure you want to remove this member?', ui.ButtonSet.YES_NO);
+    if (prompt == ui.Button.YES) {
+      const year = fetchYear();
+      membersSheet.deleteRow(members.flat().indexOf(name)+1);
+      members.splice(members.flat().indexOf(name,1),1);
+      range = membersSheet.getRange(1,1,membersSheet.getMaxRows(),1);
+      range.setValues(members);
+      ss.setNamedRange('MEMBERS',range);
+      let rangeArr = [], row;
+      if (pickemsInclude == true) {
+        rangeArr = ['TOT_OVERALL_'+year+'_NAMES','TOT_OVERALL_RANK_'+year+'_NAMES','TOT_OVERALL_PCT_'+year+'_NAMES'];
+        if (mnfInclude == true) {
+          rangeArr.push('MNF_'+year+'_NAMES');
+        }
+        nameRemove(rangeArr,name);
+      }
+
+      if (survivorInclude == true) {
+        rangeArr = ['SURVIVOR_NAMES','SURVIVOR_EVAL_NAMES'];
+        nameRemove(rangeArr,name);
+      }
+
+      let sheet = ss.getSheetByName('SUMMARY');
+      range = sheet.getRange(1,1,sheet.getMaxRows(),1);
+      names = range.getValues().flat();
+      sheet.deleteRow(names.indexOf(name)+1);
+      Logger.log('Deleted member ' + name + ' from SUMMARY sheet.');
+
+      ss.toast('Completed removal of member: ' + name);
+    } else {
+      ss.toast('Member ' + name + ' not removed.');
+    }
+  } else {
+    ss.toast('No member to remove.');
+  }
+  function nameRemove(rangeArr,name) {
+    for (let a = 0; a < rangeArr.length; a++) {
+      range = ss.getRangeByName(rangeArr[a]);
+      names = range.getValues().flat();
+      row = names.indexOf(name) + range.getRow();
+      if (names.indexOf(name) >= 0) {
+        range.getSheet().deleteRow(row);
+        Logger.log('Deleted member ' + name + ' from ' + range.getSheet().getSheetName() + ' sheet.');
+      }
+    }
+  }
+}
+
 
 //------------------------------------------------------------------------
 // MEMBERS Addition for adding new members later in the season
@@ -3570,6 +3650,7 @@ function formFetch(name,year,week,reset) {
 // CREATE FORMS FOR CORRECT WEEK BY CHECKING RECORDED GAMES - Tool to create form and populate with matchups as needed, creates custom survivor selection drop-downs for each member
 function formCreateAuto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
   let markedWeek = ss.getRangeByName('WEEK').getValue();
   let markedWeekForm = ss.getRangeByName('FORM_WEEK_'+markedWeek).getValue();
   let year = fetchYear();
