@@ -1,6 +1,6 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.2 - 2023
+// v2.3 - 2023
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
@@ -1155,7 +1155,7 @@ function fetchNFLOutcomes(){
         homeScore = parseInt(competitors[0].homeAway == 'home' ? competitors[0].score : competitors[1].score);
         tiebreaker = awayScore + homeScore;
         winner = (competitors[0].winner == true ? competitors[0].team.abbreviation : (competitors[1].winner == true ? competitors[1].team.abbreviation : 'TIE'));
-        outcomes.push(home,away,winner,tiebreaker);
+        outcomes.push(away,home,winner,tiebreaker);
       }
       all.push(outcomes);
     }
@@ -4141,7 +4141,7 @@ function formCheck(request,members,week) {
         for (let b = 1; b < itemResponses.length; b++) {
           let itemResponse = itemResponses[b];
           if(form.getItemById(itemResponse.getItem().getId()).getTitle() == 'Name'){
-            name = itemResponse.getResponse();
+            name = itemResponse.getResponse().trim();
           }
         }
       }
@@ -4610,8 +4610,8 @@ function dataTransfer(redirect,thursOnly) {
             response = itemResponse.getResponse();
             title = itemResponse.getItem().getTitle();
             if (title == 'Name' && response != 'New User') {
-              responses[b].name = response;
-              user = response;
+              responses[b].name = response.trim();
+              user = response.trim();
             } else if (survivorInclude == true && title == 'Survivor') {
               responses[b].survivor = response;
             } else if (commentInclude == true && title == 'Comments') {
