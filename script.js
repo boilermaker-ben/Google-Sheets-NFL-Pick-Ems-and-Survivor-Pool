@@ -1,6 +1,6 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.3 - 2023
+// v2.4 - 2023
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
@@ -106,6 +106,16 @@ function runFirst() {
       }
     }
 
+    // Prompts for the inclusion of a TNF in weekly games
+    let tnfInclude = true;
+    let tnfCheck = ui.alert('THURSDAY NIGHT FOOTBALL\r\n\r\nWould you like to include all Thursday football games?\r\n\r\n(Select \'NO\' if you intend to have members to submit picks after the Thursday game has occurred)', ui.ButtonSet.YES_NO);
+    if ( tnfCheck == ui.Button.NO) {
+      tnfInclude = false;
+    } else if ( tnfCheck != ui.Button.YES && tnfCheck != ui.Button.NO ) {
+      ui.alert(cancelText, ui.ButtonSet.OK);
+      throw new Error('Canceled during TNF question'); 
+    }
+
     // Prompts for the inclusion of a comment box at end of form
     let commentInclude = false;
     if (pickemsInclude == true) {
@@ -182,7 +192,7 @@ function runFirst() {
       // Run through all sheet information population
       try {
         // Creates Form Sheet (calls function)
-        let config = configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart);
+        let config = configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,commentInclude,survivorInclude,survivorStart);
         Logger.log('Deployed Config sheet');        
 
         // Creates Member sheet (calling function)
@@ -308,15 +318,39 @@ function survivorEvalFix() {
 //------------------------------------------------------------------------
 // CREATE MENU - this is the ideal setup once the sheet has been configured and the data is all imported
 function createMenuUnlocked(trigger) {
-  if (SpreadsheetApp.getActiveSpreadsheet().getRangeByName('PICKEMS_PRESENT').getValue() != false) {
-    let menu = SpreadsheetApp.getUi().createMenu('Picks');
-    menu.addItem('Create Form','formCreateAuto')
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss.getRangeByName('PICKEMS_PRESENT').getValue() != false) {
+    let tnfInclude = true;
+    try{
+      tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+    }
+    catch (err) {
+      Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+    }
+    if (tnfInclude == true) {
+      let menu = SpreadsheetApp.getUi().createMenu('Picks');
+      menu.addItem('Create Form','formCreateAuto')
+          .addItem('Open Form','openForm')
+          .addItem('Check NFL Scores','recordNFLWeeklyScores')
+          .addSeparator()
+          .addItem('Check Responses','formCheckAlert')
+          .addItem('Import Picks','dataTransfer')
+          .addItem('Import Thursday Picks','dataTransferTNF')
+          .addSeparator()
+          .addItem('Add Member(s)','memberAdd')
+          .addItem('Remove Member','memberRemove')
+          .addItem('Lock Members','createMenuLockedWithTrigger')
+          .addSeparator()
+          .addItem('Update NFL Schedule', 'fetchNFL')
+          .addToUi();
+    } else {
+      let menu = SpreadsheetApp.getUi().createMenu('Picks');
+          menu.addItem('Create Form','formCreateAuto')
         .addItem('Open Form','openForm')
         .addItem('Check NFL Scores','recordNFLWeeklyScores')
         .addSeparator()
         .addItem('Check Responses','formCheckAlert')
         .addItem('Import Picks','dataTransfer')
-        .addItem('Import Thursday Picks','dataTransferTNF')
         .addSeparator()
         .addItem('Add Member(s)','memberAdd')
         .addItem('Remove Member','memberRemove')
@@ -324,6 +358,7 @@ function createMenuUnlocked(trigger) {
         .addSeparator()
         .addItem('Update NFL Schedule', 'fetchNFL')
         .addToUi();
+    }
   } else {
     let menu = SpreadsheetApp.getUi().createMenu('Picks');
     menu.addItem('Create Form','formCreateAuto')
@@ -351,20 +386,43 @@ function createMenuUnlocked(trigger) {
 }
 // CREATE MENU For general use with locked MEMBERS sheet
 function createMenuLocked(trigger) {
-  if (SpreadsheetApp.getActiveSpreadsheet().getRangeByName('PICKEMS_PRESENT').getValue() != false) {
-    let menu = SpreadsheetApp.getUi().createMenu('Picks');
-    menu.addItem('Create Form','formCreateAuto')
-        .addItem('Open Form','openForm')
-        .addItem('Check NFL Scores','recordNFLWeeklyScores')
-        .addSeparator()
-        .addItem('Check Responses','formCheckAlert')
-        .addItem('Import Picks','dataTransfer')
-        .addItem('Import Thursday Picks','dataTransferTNF')
-        .addSeparator()
-        .addItem('Reopen Members','createMenuUnlockedWithTrigger')
-        .addSeparator()
-        .addItem('Update NFL Schedule', 'fetchNFL')  
-        .addToUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss.getRangeByName('PICKEMS_PRESENT').getValue() != false) {
+    let tnfInclude = true;
+    try{
+      tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+    }
+    catch (err) {
+      Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+    }
+    if (tnfInclude == true) {
+      let menu = SpreadsheetApp.getUi().createMenu('Picks');
+      menu.addItem('Create Form','formCreateAuto')
+          .addItem('Open Form','openForm')
+          .addItem('Check NFL Scores','recordNFLWeeklyScores')
+          .addSeparator()
+          .addItem('Check Responses','formCheckAlert')
+          .addItem('Import Picks','dataTransfer')
+          .addItem('Import Thursday Picks','dataTransferTNF')
+          .addSeparator()
+          .addItem('Reopen Members','createMenuUnlockedWithTrigger')
+          .addSeparator()
+          .addItem('Update NFL Schedule', 'fetchNFL')  
+          .addToUi();
+    } else {
+      let menu = SpreadsheetApp.getUi().createMenu('Picks');
+      menu.addItem('Create Form','formCreateAuto')
+          .addItem('Open Form','openForm')
+          .addItem('Check NFL Scores','recordNFLWeeklyScores')
+          .addSeparator()
+          .addItem('Check Responses','formCheckAlert')
+          .addItem('Import Picks','dataTransfer')
+          .addSeparator()
+          .addItem('Reopen Members','createMenuUnlockedWithTrigger')
+          .addSeparator()
+          .addItem('Update NFL Schedule', 'fetchNFL')  
+          .addToUi();      
+    }
   } else {
     let menu = SpreadsheetApp.getUi().createMenu('Picks');
     menu.addItem('Create Form','formCreateAuto')
@@ -619,7 +677,7 @@ function memberRemove(name) {
       range = membersSheet.getRange(1,1,membersSheet.getMaxRows(),1);
       range.setValues(members);
       ss.setNamedRange('MEMBERS',range);
-      let rangeArr = [], row;
+      let rangeArr = [], names = [];
       if (pickemsInclude == true) {
         rangeArr = ['TOT_OVERALL_'+year+'_NAMES','TOT_OVERALL_RANK_'+year+'_NAMES','TOT_OVERALL_PCT_'+year+'_NAMES'];
         if (mnfInclude == true) {
@@ -649,8 +707,8 @@ function memberRemove(name) {
   function nameRemove(rangeArr,name) {
     for (let a = 0; a < rangeArr.length; a++) {
       range = ss.getRangeByName(rangeArr[a]);
-      names = range.getValues().flat();
-      row = names.indexOf(name) + range.getRow();
+      let names = range.getValues().flat();
+      let row = names.indexOf(name) + range.getRow();
       if (names.indexOf(name) >= 0) {
         range.getSheet().deleteRow(row);
         Logger.log('Deleted member ' + name + ' from ' + range.getSheet().getSheetName() + ' sheet.');
@@ -1490,7 +1548,7 @@ function nflOutcomesSheetUpdate(year,week,games) {
 }
 
 //------------------------------------------------------------------------
-function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclude,survivorInclude,survivorStart) {
+function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,commentInclude,survivorInclude,survivorStart) {
   
   let ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -1506,6 +1564,9 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclu
     }
     if (mnfInclude == null) {
       mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
+    }
+    if (tnfInclude == null) {
+      tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
     }
     if (survivorInclude == null) {
       survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
@@ -1525,9 +1586,18 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclu
     ss.toast('Error with getting information from CONFIG sheet or from runFirst script input, you may need to recreate everything or look at your version history');
     Logger.log('sheetSheet Error: ' + err.stack);
   }
-  let array = [['NAME',name],['ACTIVE\ WEEK',week],['TOTAL\ WEEKS',weeks],['YEAR',year],['PICK\ \'EMS',pickemsInclude],['MNF',mnfInclude],['COMMENTS',commentInclude],['SURVIVOR',survivorInclude],['SURVIVOR\ DONE','=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))'],['SURVIVOR\ START',survivorStart]];
+
+  // Establish generic name if null provided
+  if (name == null) {
+    if (pickemsInclude == true) {
+      name = 'NFL Pick \'Ems';
+    } else {
+      name = 'NFL Survivor Pool';
+    }
+  }
+  let array = [['NAME',name],['ACTIVE\ WEEK',week],['TOTAL\ WEEKS',weeks],['YEAR',year],['PICK\ \'EMS',pickemsInclude],['MNF',mnfInclude],['TNF',tnfInclude],['COMMENTS',commentInclude],['SURVIVOR',survivorInclude],['SURVIVOR\ DONE','=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))'],['SURVIVOR\ START',survivorStart]];
   let endData = array.length;
-  let arrayNamedRanges = ['NAME','WEEK','WEEKS','YEAR','PICKEMS_PRESENT','MNF_PRESENT','COMMENTS_PRESENT','SURVIVOR_PRESENT','SURVIVOR_DONE','SURVIVOR_START'];
+  let arrayNamedRanges = ['NAME','WEEK','WEEKS','YEAR','PICKEMS_PRESENT','MNF_PRESENT','TNF_PRESENT','COMMENTS_PRESENT','SURVIVOR_PRESENT','SURVIVOR_DONE','SURVIVOR_START'];
 
   // Fix total rows and columns
   if(sheet.getMaxRows() > (endData + weeks + 2)) {
@@ -1570,7 +1640,7 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclu
   sheet.getRange(2,2).setDataValidation(rule);
   
   rule = SpreadsheetApp.newDataValidation().requireValueInList([true,false], true).build();
-  let range = sheet.getRange(5,2,4,1);
+  let range = sheet.getRange(5,2,5,1);
   range.setDataValidation(rule);
   rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(weeksArr)
@@ -1578,7 +1648,7 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,commentInclu
   sheet.getRange((endData-1),2).setDataValidation(rule);
   
   // TRUE COLOR FORMAT
-  range = sheet.getRange(5,2,5,1);
+  range = sheet.getRange(5,2,6,1);
   let formatTrue = SpreadsheetApp.newConditionalFormatRule()
     .whenTextContains("true")
     .setBackground('#c9ffdf')
@@ -1735,6 +1805,13 @@ function weeklySheet(year,week,members,dataRestore) {
   let ss = SpreadsheetApp.getActiveSpreadsheet();
 
   let mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
+  let tnfInclude = true;
+  try{
+    tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
   let commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
 
   let sheet, sheetName;
@@ -1820,7 +1897,7 @@ function weeklySheet(year,week,members,dataRestore) {
   let rule,matches = 0;
   let exportMatches = [];
   for ( let a = 0; a < data.length; a++ ) {
-    if ( data[a][0] == week ) {
+    if ( data[a][0] == week && (tnfInclude == true || (tnfInclude == false && data[a][2] >= 0))) {
       matches++;
       let day = data[a][2];
       let away = data[a][6];
@@ -3650,7 +3727,6 @@ function formFetch(name,year,week,reset) {
 // CREATE FORMS FOR CORRECT WEEK BY CHECKING RECORDED GAMES - Tool to create form and populate with matchups as needed, creates custom survivor selection drop-downs for each member
 function formCreateAuto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ui = SpreadsheetApp.getUi();
   let markedWeek = ss.getRangeByName('WEEK').getValue();
   let markedWeekForm = ss.getRangeByName('FORM_WEEK_'+markedWeek).getValue();
   let year = fetchYear();
@@ -3716,6 +3792,13 @@ function formCreate(auto,week,year,name) {
 
   // Establish variables if not passed into function
   const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
+  let tnfInclude = true;
+  try{
+    tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
   const commentsInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
   let survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
   let survivorStart = ss.getRangeByName('SURVIVOR_START').getValue();
@@ -3899,7 +3982,7 @@ function formCreate(auto,week,year,name) {
           let finalGame ='';
           let a = 0;
           for (a; a < data.length; a++ ) {
-            if ( data[a][0] == week ) {
+            if ( data[a][0] == week && (tnfInclude == true || (tnfInclude == false && data[a][2] >= 0))) {
               teams.push(data[a][6]);
               teams.push(data[a][7]);
               item = form.addMultipleChoiceItem();
@@ -3956,7 +4039,7 @@ function formCreate(auto,week,year,name) {
       } else { 
         // This loops through the data for the weekly matchups and compiles all the participants from the weekend in case there is not a pick 'ems pool included.
         for (let a = 0; a < data.length; a++ ) {
-          if ( data[a][0] == week ) {
+          if ( data[a][0] == week && (tnfInclude == true || (tnfInclude == false && data[a][2] >= 0))) {
             teams.push(data[a][6]);
             teams.push(data[a][7]);
           }
