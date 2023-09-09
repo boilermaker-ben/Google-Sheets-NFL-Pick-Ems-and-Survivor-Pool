@@ -182,7 +182,7 @@ function runFirst() {
     if (pickemsInclude == true) {
       text = text + '\r\nMNF Pool: ' + (mnfInclude==true?'YES':'NO') + '\r\nComments: ' + (commentInclude==true?'YES':'NO');
     }
-    text = text + '\r\nSurvivor Pool: ' + (survivorInclude==true?'YES':'NO') + '\r\nMembers: ' + (lockMembers==true?'LOCKED':'UNLOCKED') + (week>1?('\r\nCreate Previous Weeks: ' + (createOldWeeks==true?'YES':'NO')):'') + '\r\nCreate Initial Form: ' + (createFormConfirm==true?'YES':'NO') + '\r\nInitial Member Count: ' + members.length;
+    text = text + '\r\nThursday Games: ' + (tnfInclude==true?'YES':'NO') + '\r\nSurvivor Pool: ' + (survivorInclude==true?'YES':'NO') + '\r\nMembers: ' + (lockMembers==true?'LOCKED':'UNLOCKED') + (week>1?('\r\nCreate Previous Weeks: ' + (createOldWeeks==true?'YES':'NO')):'') + '\r\nCreate Initial Form: ' + (createFormConfirm==true?'YES':'NO') + '\r\nInitial Member Count: ' + members.length;
     let finish = ui.alert(text, ui.ButtonSet.OK_CANCEL);
     if (finish == ui.Button.OK) {    
       // Pull in NFL Schedule data and create sheet
@@ -1257,6 +1257,7 @@ function recordNFLWeeklyScores(){
 //------------------------------------------------------------------------
 // NFL OUTCOMES - Records the winner and combined tiebreaker for each matchup on the NFL_{year} sheet
 function fetchNFLWeeklyScores(){
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ui = SpreadsheetApp.getUi();
   let obj = {};
   try{
@@ -1266,6 +1267,7 @@ function fetchNFLWeeklyScores(){
     ui.alert('ESPN API isn\'t responding currently, try again in a moment.');
     Logger.log(err.stack);
   }
+  
   if (Object.keys(obj).length > 0) {
     let games = obj.events;
 
@@ -1279,12 +1281,42 @@ function fetchNFLWeeklyScores(){
     if(obj.events[0].season.slug == 'preseason'){
       ui.alert('Regular season not yet started.\r\n\r\n Currently preseason is still underway.', ui.ButtonSet.OK);
     } else {
+
+      let teams = [];
+
+      // Get value for TNF being included
+      let tnfInclude = true;
+      try{
+        tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+      }
+      catch (err) {
+        Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+      }
+
+      // Get existing matchup data for comparison to scores (only for TNF exclusion)
+      let data = [];
+      if (tnfInclude == false) {
+        try {
+          data = ss.getRangeByName('NFL_'+year).getValues();
+        }
+        catch (err) {
+          ss.toast('No NFL data, importing now');
+          fetchNFL();
+          data = ss.getRangeByName('NFL_'+year).getValues();
+        }
+        for (let a = 0; a < data.length; a++) {
+          if (data[a][0] == week && (tnfInclude == true || (tnfInclude == false && data[a][2] >= 0))) {
+            teams.push(data[a][6]);
+            teams.push(data[a][7]);
+          }
+        }
+      }
       // Loop through games provided and creates an array for placing
-      let outcomes = [];
       let all = [];
       let count = 0;
       let away, awayScore,home, homeScore,tiebreaker,winner,competitors;
       for (let a = 0; a < games.length; a++){
+        let outcomes = [];
         awayScore = '';
         homeScore = '';
         tiebreaker = '';
@@ -1293,13 +1325,15 @@ function fetchNFLWeeklyScores(){
         away = (competitors[1].homeAway == 'away' ? competitors[1].team.abbreviation : competitors[0].team.abbreviation);
         home = (competitors[0].homeAway == 'home' ? competitors[0].team.abbreviation : competitors[1].team.abbreviation);
         if (games[a].status.type.completed == true) {
-          count++;
-          awayScore = parseInt(competitors[1].homeAway == 'away' ? competitors[1].score : competitors[0].score);
-          homeScore = parseInt(competitors[0].homeAway == 'home' ? competitors[0].score : competitors[1].score);
-          tiebreaker = awayScore + homeScore;
-          winner = (competitors[0].winner == true ? competitors[0].team.abbreviation : (competitors[1].winner == true ? competitors[1].team.abbreviation : 'TIE'));
-          outcomes.push(away,home,winner,tiebreaker);
-          all.push(outcomes);
+          if (tnfInclude == true || (tnfInclude == false && (teams.indexOf(away) >= 0 || teams.indexOf(home) >= 0))) {
+            count++;
+            awayScore = parseInt(competitors[1].homeAway == 'away' ? competitors[1].score : competitors[0].score);
+            homeScore = parseInt(competitors[0].homeAway == 'home' ? competitors[0].score : competitors[1].score);
+            tiebreaker = awayScore + homeScore;
+            winner = (competitors[0].winner == true ? competitors[0].team.abbreviation : (competitors[1].winner == true ? competitors[1].team.abbreviation : 'TIE'));
+            outcomes.push(away,home,winner,tiebreaker);
+            all.push(outcomes);
+          }
         }      
       }
       // Sets info variables for passing back to any calling functions
@@ -1336,6 +1370,14 @@ function nflOutcomesSheet(year) {
     data = ss.getRangeByName('NFL_'+year).getValues();
   }
   
+  let tnfInclude = true;
+  try{
+    tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
+
   let headers = [];
   let headersWidth = [];
   let headerRow = 2;
@@ -1414,32 +1456,34 @@ function nflOutcomesSheet(year) {
   let emptyArray = ['#fffdcc','#e7fed1','#cffdda','#bbfbe7','#adf7f5'];
   let filledArray = ['#fffb95','#d4ffa6','#abffbf','#89fddb','#74f7f3'];
   for (let row = 0; row < data.length; row++) {
-    if (data[row][0] != week) { // Checks if new row has a new week value
-      game = 1;
-    } else {
-      game++;
+    if (tnfInclude == true || (tnfInclude == false && data[row][2] >= 0)) {
+      if (data[row][0] != week) { // Checks if new row has a new week value
+        game = 1;
+      } else {
+        game++;
+      }
+      week = data[row][0]; // Sets week variable to the week stated in the data row
+      let writeCell = sheet.getRange(game+headerRow,week);
+      let rules = SpreadsheetApp.newDataValidation().requireValueInList([data[row][6],data[row][7],'TIE'], true).build();
+      writeCell.setDataValidation(rules);
+      let awayWin = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo(data[row][6])
+      .setBold(false)
+      .setRanges([writeCell]);
+      let homeWin = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo(data[row][7])
+      .setBold(true)
+      .setRanges([writeCell]);
+      // Color Coding Days
+      let dayIndex = data[row][2] + 3; // Numeric day used for gradient application (-3 is Thursday, 1 is Monday);
+      writeCell.setBackground(emptyArray[dayIndex]);
+      awayWin.setBackground(filledArray[dayIndex]);
+      homeWin.setBackground(filledArray[dayIndex]);
+      awayWin.build();
+      homeWin.build();
+      formats.push(awayWin);
+      formats.push(homeWin);
     }
-    week = data[row][0]; // Sets week variable to the week stated in the data row
-    let writeCell = sheet.getRange(game+headerRow,week);
-    let rules = SpreadsheetApp.newDataValidation().requireValueInList([data[row][6],data[row][7],'TIE'], true).build();
-    writeCell.setDataValidation(rules);
-    let awayWin = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo(data[row][6])
-    .setBold(false)
-    .setRanges([writeCell]);
-    let homeWin = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo(data[row][7])
-    .setBold(true)
-    .setRanges([writeCell]);
-    // Color Coding Days
-    let dayIndex = data[row][2] + 3; // Numeric day used for gradient application (-3 is Thursday, 1 is Monday);
-    writeCell.setBackground(emptyArray[dayIndex]);
-    awayWin.setBackground(filledArray[dayIndex]);
-    homeWin.setBackground(filledArray[dayIndex]);
-    awayWin.build();
-    homeWin.build();
-    formats.push(awayWin);
-    formats.push(homeWin);
   }
   let ties = SpreadsheetApp.newConditionalFormatRule()
     .whenTextEqualTo('TIE')
