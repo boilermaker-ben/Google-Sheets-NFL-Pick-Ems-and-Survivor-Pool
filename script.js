@@ -1264,8 +1264,9 @@ function fetchNFLWeeklyScores(){
     obj = JSON.parse(UrlFetchApp.fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'));
   }
   catch (err) {
-    ui.alert('ESPN API isn\'t responding currently, try again in a moment.');
     Logger.log(err.stack);
+    ui.alert('ESPN API isn\'t responding currently, try again in a moment.');
+    throw new Error('ESPN API issue, try later');
   }
   
   if (Object.keys(obj).length > 0) {
@@ -1951,9 +1952,9 @@ function weeklySheet(year,week,members,dataRestore) {
       if ( day == 1 && mnfInclude == true) {
         mnf = true;
         if ( mnfStartCol == undefined ) {
-          mnfStartCol = headersOne.length;
+          mnfStartCol = headersOne.length + 1;
         }
-        mnfEndCol = headersOne.length;
+        mnfEndCol = headersOne.length + 1;
       } else if ( day == -3 ) {
         tnf = true;
         if ( tnfStartCol == undefined ) {
@@ -4562,33 +4563,28 @@ function formCheckAlert() {
           }
         } 
         if (retry == true) {
-          let restart = ui.alert('Would you like to run the check again for form submissions now that membership is confirmed/updated?', ui.ButtonSet.YES_NO);
-          if (restart == 'YES') {
-            formCheckAlert();
-          } else {
-            members = memberList();
-            totalMembers = members.length;
-            missing = formCheck("missing",members,week);
-            
-            // Removes eliminated members from the "missing" array if they're eliminated from survivor and no pick 'ems present
-            if (survivorInclude == true && pickemsInclude == false) {
-              for (let a = 0; a < survivorMembers.length; a++) {
-                if (survivorMembersEliminated[a] > 0) {
-                  try {
-                    missing.splice(missing.indexOf(survivorMembers[a]),1);
-                  }
-                  catch (err) {
-                    Logger.log('Could not find/remove entry from user ' + survivorMembers[a] + ' from missing array');
-                  }
+          members = memberList();
+          totalMembers = members.length;
+          missing = formCheck("missing",members,week);
+          
+          // Removes eliminated members from the "missing" array if they're eliminated from survivor and no pick 'ems present
+          if (survivorInclude == true && pickemsInclude == false) {
+            for (let a = 0; a < survivorMembers.length; a++) {
+              if (survivorMembersEliminated[a] > 0) {
+                try {
+                  missing.splice(missing.indexOf(survivorMembers[a]),1);
+                }
+                catch (err) {
+                  Logger.log('Could not find/remove entry from user ' + survivorMembers[a] + ' from missing array');
                 }
               }
             }
-
-            Logger.log('Total: ' + totalMembers);
-            Logger.log('Missing: ' + missing);
-            submittedTextOutput(week,members,missing);
-            ui.alert(submittedText + '\r\n\r\nRe-run \'Form Check\' function again to check submissions or import picks.', ui.ButtonSet.OK);
           }
+
+          Logger.log('Total: ' + totalMembers);
+          Logger.log('Missing: ' + missing);
+          submittedTextOutput(week,members,missing);
+          ui.alert(submittedText + '\r\n\r\nRe-run \'Form Check\' function again to check submissions or import picks.', ui.ButtonSet.OK);
         } else {
           ui.alert(submittedText + '\r\n\r\nRe-run \'Form Check\' function again to check submissions or import picks.', ui.ButtonSet.OK);
         }
