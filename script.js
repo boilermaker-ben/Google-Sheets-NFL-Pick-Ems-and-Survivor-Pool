@@ -1183,7 +1183,16 @@ function recordNFLWeeklyScores(){
         let outcome;
         let regex = new RegExp('[A-Z]{2,3}');
         try {
-          outcome = data.filter(game => game[0] == away && game[1] == home)[0];
+          outcome = [];
+          for (let b = 0; b < data.length; b++) {
+            if (data[b][0] == away  && data[b][1] == home) {
+              outcome = data[b];
+            }
+          }
+          if (outcome.length <= 0) {
+            throw new Error ('No game data for game at index ' + (a+1) + ' with teams given as ' + away + ' and ' + home);
+          }
+          //outcome = data.filter(game => game[0] == away && game[1] == home)[0];
           if (outcome[2] == away || outcome[2] == home) {
             if (regex.test(outcome[2])) {
               arr.push(outcome[2]);
@@ -1204,6 +1213,9 @@ function recordNFLWeeklyScores(){
         }
         try {
           if (a == (matchups.length - 1)) {
+            if (outcome.length <= 0) {
+              throw new Error('No tiebreaker yet');
+            }
             arr.push(outcome[3]); // Appends tiebreaker to end of array
           }
         }
@@ -1344,6 +1356,9 @@ function fetchNFLWeeklyScores(){
       // Outputs total matches, how many completed, and how many remaining, and all matchups with outcomes decided;
       return [week,games.length,completed,remaining,all];
     }
+  } else {
+    Logger.log('ESPN API returned no games');
+    ui.alert('ESPN API didn\'t return any game information. Try again later and make sure you\'re checking while the NFL season is active');
   }
 }
 
