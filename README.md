@@ -254,9 +254,14 @@ Once the scripts have completed, you should have a new menu option on the top ri
 Hopeful improvements for future versions:
 
 - Google User confirmation (auto-detection for submissions, may be above my head)
-- Reorganize member names alphabetically
+- Reorganize member names alphabetically as an option
 - Add column for participants in each weekly set of games
 - Picking against the spread rather than straight up option  (tough due to timing of when people submit and the changing nature of lines)
+- Multiple entries per user
+- Option to have user removed upon submission from Form
+- Option to "revive" in survivor pool (possibly with two correct picks)
+- Column for payment/entry fee received per weekly sheet
+- Adjust naming conventions for named ranges and weekly sheets
 - More metrics (suggestions welcome!)
 
 -------------------------
