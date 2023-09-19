@@ -761,12 +761,12 @@ function memberAddForm(names,week){
               if (names[a] == 'New User') {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],newUserPage);
                 Logger.log('New user \"' + names[a] + '\" is redirected to the \"' + newUserPage.getTitle() + '\" Form page');
+                choices.unshift(newChoice);
               } else {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],gotoPage);
                 Logger.log('New user \"' + names[a] + '\" is redirected to the \"' + gotoPage.getTitle() + '\" Form page');
-              }
-              choices.push(newChoice);
-              
+                choices.push(newChoice);
+              }              
             }
             nameQuestion.asListItem().setChoices(choices);
           }
@@ -779,7 +779,7 @@ function memberAddForm(names,week){
             for (let a = 0; a < names.length; a++) {
               if (names[a] == 'New User') {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],newUserPage);
-                choices.push(newChoice);
+                choices.unshift(newChoice);
                 Logger.log('New user \"' + names[a] + '\" is redirected to the \"' + newUserPage.getTitle() + '\" Form page');
               } else {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],FormApp.PageNavigationType.SUBMIT);
@@ -4234,7 +4234,7 @@ function formCreate(auto,week,year,name) {
       }
 
       if (locked == false && (pickemsInclude == true || (survivorInclude == true && week == survivorStart))) {
-        nameOptions.push(nameQuestion.createChoice('New User',newUserPage));
+        nameOptions.unshift(nameQuestion.createChoice('New User',newUserPage));
         nameQuestion.setHelpText('Select your name from the dropdown or select \'New User\' if you haven\'t joined yet.');
       } else if (pickemsInclude == false && survivorInclude == true && week != survivorStart) {
         nameQuestion.setHelpText('Select your name from the dropdown. If your name is not an option, then you were eliminated from the survivor pool.');
