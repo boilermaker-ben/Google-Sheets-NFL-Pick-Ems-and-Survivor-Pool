@@ -262,6 +262,7 @@ Hopeful improvements for future versions:
 - Option to "revive" in survivor pool (possibly with two correct picks)
 - Column for payment/entry fee received per weekly sheet
 - Adjust naming conventions for named ranges and weekly sheets
+- Member rename function
 - More metrics (suggestions welcome!)
 
 -------------------------
