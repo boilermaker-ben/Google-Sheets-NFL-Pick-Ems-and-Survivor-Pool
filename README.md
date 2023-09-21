@@ -255,6 +255,7 @@ Hopeful improvements for future versions:
 
 - Google User confirmation (auto-detection for submissions, may be above my head)
 - Reorganize member names alphabetically as an option
+- Clear former Forms and avoid re-pulling a previous form if the name of the group is unchanged
 - Add column for participants in each weekly set of games
 - Picking against the spread rather than straight up option  (tough due to timing of when people submit and the changing nature of lines)
 - Multiple entries per user
