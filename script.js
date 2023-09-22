@@ -95,7 +95,7 @@ function runFirst() {
   Logger.log('Answer the prompts that appear... [Go to spreadsheet]');
 
   // Prompt to start creation of spreadsheet
-  let start = ui.alert('WELCOME\r\n\r\nThanks for checking out this Pick \'Ems script and using it. \r\n\r\nThere are a couple user inputs to gather before getting you rolling\r\n\r\n\- Ben', ui.ButtonSet.OK);
+  let start = ui.alert('WELCOME\r\n\r\nThanks for checking out this Pick \'Ems and Survivor script. \r\n\r\nThere are some user inputs to gather before getting you rolling.\r\nPlease read them carefully to avoid having to restart this one-time setup.\r\n\r\nHave a great season!\r\n\r\n\- Ben', ui.ButtonSet.OK);
   let cancel = false;
   const cancelText = 'Setup canceled by user. Try again later.';
   if ( start == ui.Button.OK) {
@@ -1708,9 +1708,6 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,t
   const trueFalseCount = 9; // Number of named ranges with true and false values for conditional formatting
   const dataValidationCount = 8; // Number of named ranges with data validation rules
 
-  // Puts formula in survivor done cell (likely needs to be replaced to trigger recalculation later)
-  survivorDoneFormula(ss);
-
   // Fix total rows and columns
   if(sheet.getMaxRows() > (endData + weeks + 2)) {
     sheet.deleteRows((endData + weeks + 2) + 1,sheet.getMaxRows() - (endData + weeks + 2));
@@ -1848,6 +1845,10 @@ function memberSheet(members) {
   }
   memberList();
   sheet.setColumnWidth(1,120);
+  
+  // Puts formula in survivor done cell (likely needs to be replaced to trigger recalculation later)
+  survivorDoneFormula(ss);
+
   sheet.hideSheet();
   return sheet;
 }
