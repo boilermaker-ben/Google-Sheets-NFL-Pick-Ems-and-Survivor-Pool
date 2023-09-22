@@ -1,14 +1,83 @@
-// Google Sheets NFL Pick 'Ems & Survivor
-// League Creator & Management Platform Tool
-// v2.4 - 2023
-// Created by Ben Powers
-// ben.powers.creative@gmail.com
+/** GOOGLE SHEETS PICK 'EMS & SURVIVOR
+ * League Creator & Management Platform Tool
+ * v2.5
+ * 9/22/2023
+ * 
+ * Created by Ben Powers
+ * ben.powers.creative@gmail.com
+ * 
+ * ------------------------------------------------------------------------
+ * DESCRIPTION:
+ * A series of Google Apps Scripts that generate multiple sheets and a Google Form
+ * to be utilized for gathering NFL pick 'ems and NFL survivor selections.
+ * 
+ * ------------------------------------------------------------------------
+ * INSTRUCTIONS:
+ * Once copying this code into the Apps Script (Extensions > Apps Script) console,
+ * run the "runFirst" function, then move to the sheet you created to answer prompts.
+ * 
+ * ------------------------------------------------------------------------
+ * USAGE:
+ * There are a number of functions, but the majority are relatively intuitive
+ * 
+ * CREATE FORM
+ * This function will allow you to create a new form for the week, 
+ * there are safety checks to ensure you don’t erase previous entry information 
+ * and it allows you to decline creating a form for the proposed week and enter your own
+ * 
+ * CHECK NFL SCORES
+ * Won’t work until the first week starts; this can bring down 
+ * all completed matches and the tiebreaker information from the MNF game, if available.
+ * 
+ * CHECK RESPONSESE
+ * Checks the responses in the Google Form without revealing picks 
+ * so you can hound the worthless members who haven’t submitted picks yet;
+ * prompts to import if all responses are submitted and checks for new users
+ * 
+ * IMPORT PICKS
+ * Direct function to import all pick’em information submitted, 
+ * it does check responses first and confirm you’d like to submit as well as checking for new members first
+ * 
+ * IMPORT THURSDAY PICKS
+ * In case you have lagging members who you allow to submit 
+ * their picks late (and not count the Thursday game for them), this allows you to only import
+ * the Thursday night game matchup picks from your faithful members (not available with survivor-only)
+ * 
+ * ADD MEMBERS(S)
+ * Prompts to bring in a new member or multiple (comma-separated) members.
+ * This will add them to the survivor activity, if present and in the first week of competition,
+ * otherwise just adds them to a pick ‘ems pool
+ * 
+ * REOPEN MEMBERS / LOCK MEMBERS
+ * Toggles between whether you can add members or not,
+ * will add “New User” option in the Form or remove it and will
+ * add or remove the “Add Member” function in the menu
+ * 
+ * UPDATE NFL SCHEDULE
+ * pulls any changes from NFL scheduling updates
+ * (likely not needed, but some games are flexed into primetime). 
+ * You will also be prompted each week if you’d like to update the NFL schedule data,
+ * which doesn’t hurt, but adds a few seconds to the process
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * If you're feeling generous and would like to support my work,
+ * here's a link to support my wife, five kiddos, and me:
+ * https://www.buymeacoffee.com/benpowers
+ * 
+ * Thanks for checking out the script!
+ * 
+ * **/
 
-// CONSTANTS
+//------------------------------------------------------------------------
+// CONSTANTS - for easy modification in the future
 const nflTeams = 32;
 const maxGames = nflTeams/2;
+const dayColors = ['#fffdcc','#e7fed1','#cffdda','#bbfbe7','#adf7f5'];
+const dayColorsFilled = ['#fffb95','#d4ffa6','#abffbf','#89fddb','#74f7f3'];
 
-// PRELIM SETUP- Creation of all needed initial sheets, prompt to import NFL
+//------------------------------------------------------------------------
+// PRELIM SETUP - Creation of all needed initial sheets, prompt to import NFL
 function runFirst() {
   
   // Initial Variables
@@ -34,7 +103,7 @@ function runFirst() {
     // Confirm timezone setting before continuing
     let timeZonePrompt = ui.alert('TIMEZONE\r\n\r\nThe timezone you\'re currently using is ' + tz + '. Is this correct?', ui.ButtonSet.YES_NO);
     if ( timeZonePrompt != 'YES') {
-      let timeZoneFixPrompt = ui.alert('FIX TIMEZONE\r\n\r\nFollow these steps to change your projects time zone:\r\n\r\n1\. Return to the script editor\r\n2\. Select the gear icon on the left menu\r\n3\. Use the drop-down to select the correct timezone\r\n4\. Restart the script by clicking \'Run\' again', ui.ButtonSet.OK);
+      ui.alert('FIX TIMEZONE\r\n\r\nFollow these steps to change your projects time zone:\r\n\r\n1\. Return to the script editor\r\n2\. Select the gear icon on the left menu\r\n3\. Use the drop-down to select the correct timezone\r\n4\. Restart the script by clicking \'Run\' again', ui.ButtonSet.OK);
       ss.toast('Canceled due to incorrect time zone');
       throw new Error('Canceled during time zone confirmation question');
     }
@@ -116,6 +185,26 @@ function runFirst() {
       throw new Error('Canceled during TNF question'); 
     }
 
+    // Prompts for having a weekly tiebreaker removed
+    let tiebreaker = true;
+    let tiebreakerCheck = ui.alert('TIEBREAKER\r\n\r\nWould you like to use the tiebreaker of the combined score of the final NFL game of each week to determine a winner?\r\n\r\n(Selecting \'NO\' will result in a tie being designated on any week when one or more members pick the same number of games correctly)', ui.ButtonSet.YES_NO);
+    if ( tiebreakerCheck == ui.Button.NO) {
+      tiebreaker = false;
+    } else if ( tiebreakerCheck != ui.Button.YES && tiebreakerCheck != ui.Button.NO ) {
+      ui.alert(cancelText, ui.ButtonSet.OK);
+      throw new Error('Canceled during Tiebreaker question'); 
+    }
+
+    // Prompts for having a weekly tiebreaker removed
+    let bonus = false;
+    let bonusCheck = ui.alert('BONUS\r\n\r\nYou can optionally have some games count as 2x or 3x the values of others, would you like to make this feature visible?\r\n\r\n(Selecting \'NO\' will simply hide the row for weighting games and this can be changed later)', ui.ButtonSet.YES_NO);
+    if ( bonusCheck == ui.Button.YES) {
+      bonus = true;
+    } else if ( bonusCheck != ui.Button.NO && bonusCheck != ui.Button.NO ) {
+      ui.alert(cancelText, ui.ButtonSet.OK);
+      throw new Error('Canceled during Bonus question'); 
+    }
+
     // Prompts for the inclusion of a comment box at end of form
     let commentInclude = false;
     if (pickemsInclude == true) {
@@ -180,11 +269,15 @@ function runFirst() {
     // Final prompt to start the longer script
     let text = 'Alright, that\'s it, now the script will do its thing!\r\n\r\nTimezone: ' + tz + '\r\nName: \"' + name + '\"\r\nPick \'Ems Pool: ' + (pickemsInclude==true?'YES':'NO');
     if (pickemsInclude == true) {
-      text = text + '\r\nMNF Pool: ' + (mnfInclude==true?'YES':'NO') + '\r\nComments: ' + (commentInclude==true?'YES':'NO');
+      text = text + '\r\nMNF Pool: ' + (mnfInclude==true?'YES':'NO') + '\r\nTiebreakers: ' + (tiebreaker==true?'YES':'NO') + '\r\nBonus Games: ' + (bonus==true?'YES':'NO') + '\r\nComments: ' + (commentInclude==true?'YES':'NO');
     }
     text = text + '\r\nThursday Games: ' + (tnfInclude==true?'YES':'NO') + '\r\nSurvivor Pool: ' + (survivorInclude==true?'YES':'NO') + '\r\nMembers: ' + (lockMembers==true?'LOCKED':'UNLOCKED') + (week>1?('\r\nCreate Previous Weeks: ' + (createOldWeeks==true?'YES':'NO')):'') + '\r\nCreate Initial Form: ' + (createFormConfirm==true?'YES':'NO') + '\r\nInitial Member Count: ' + members.length;
     let finish = ui.alert(text, ui.ButtonSet.OK_CANCEL);
-    if (finish == ui.Button.OK) {    
+    if (finish == ui.Button.OK) {
+
+      // Renames spreadsheet to the pool title give in the question
+      ss.rename(name);
+
       // Pull in NFL Schedule data and create sheet
       fetchNFL();
       Logger.log('Fetched NFL Schedule');      
@@ -192,7 +285,7 @@ function runFirst() {
       // Run through all sheet information population
       try {
         // Creates Form Sheet (calls function)
-        let config = configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,commentInclude,survivorInclude,survivorStart);
+        let config = configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,tiebreaker,commentInclude,survivorInclude,survivorStart);
         Logger.log('Deployed Config sheet');        
 
         // Creates Member sheet (calling function)
@@ -260,12 +353,8 @@ function runFirst() {
           weekly.activate();
         }       
 
-        if (lockMembers == false) {
-          createMenuUnlockedWithTriggerFirst();
-        } else {
-          createMenuLockedWithTriggerFirst();
-        }
-        Logger.log('Created final menu.');
+        createMenuFirst(lockMembers);
+        Logger.log('Created menu.');
 
         ss.getSheetByName('NFL_' + year).hideSheet();
 
@@ -307,175 +396,118 @@ function runFirst() {
   }
 }
 
-function survivorEvalFix() {
-  survivorEvalSheet(null,null,null,true);
-  Logger.log('Deploying Survivor Eval sheet');
-  let survivorDoneFormulaCell = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('SURVIVOR_DONE');
-  survivorDoneFormulaCell.setValue('=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))');
-  SpreadsheetApp.getActiveSpreadsheet().toast('Created Survivor Eval sheet and reset CONFIG formula');
-}
-
 //------------------------------------------------------------------------
-// CREATE MENU - this is the ideal setup once the sheet has been configured and the data is all imported
-function createMenuUnlocked(trigger) {
+// CREATE MENU - this is the standard setup once the sheet has been configured and the data is all imported
+function createMenu(lock,trigger) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (ss.getRangeByName('PICKEMS_PRESENT').getValue() != false) {
-    let tnfInclude = true;
-    try{
-      tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
-    }
-    catch (err) {
-      Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
-    }
-    if (tnfInclude == true) {
-      let menu = SpreadsheetApp.getUi().createMenu('Picks');
-      menu.addItem('Create Form','formCreateAuto')
-          .addItem('Open Form','openForm')
-          .addItem('Check NFL Scores','recordNFLWeeklyScores')
-          .addSeparator()
-          .addItem('Check Responses','formCheckAlert')
-          .addItem('Import Picks','dataTransfer')
-          .addItem('Import Thursday Picks','dataTransferTNF')
-          .addSeparator()
-          .addItem('Add Member(s)','memberAdd')
-          .addItem('Remove Member','memberRemove')
-          .addItem('Lock Members','createMenuLockedWithTrigger')
-          .addSeparator()
-          .addItem('Update NFL Schedule', 'fetchNFL')
-          .addToUi();
-    } else {
-      let menu = SpreadsheetApp.getUi().createMenu('Picks');
-          menu.addItem('Create Form','formCreateAuto')
-        .addItem('Open Form','openForm')
-        .addItem('Check NFL Scores','recordNFLWeeklyScores')
-        .addSeparator()
-        .addItem('Check Responses','formCheckAlert')
-        .addItem('Import Picks','dataTransfer')
-        .addSeparator()
-        .addItem('Add Member(s)','memberAdd')
-        .addItem('Remove Member','memberRemove')
-        .addItem('Lock Members','createMenuLockedWithTrigger')
-        .addSeparator()
-        .addItem('Update NFL Schedule', 'fetchNFL')
-        .addToUi();
-    }
+  const ui = SpreadsheetApp.getUi();
+  if (lock == undefined || lock == null) {
+    lock = membersSheetProtected();
+  }
+  let pickems = false;
+  try{
+    pickems = ss.getRangeByName('PICKEMS_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Error fetching PICKEMS_PRESENT.');
+    pickems = true;
+  }
+  let tnfInclude = true;
+  try{
+    tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
+  let bonus = false;
+  try{
+    bonus = ss.getRangeByName('BONUS_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the bonus feature configured, add a named range "BONUS_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
+  let mnfDouble = false;
+  try{
+    mnfDouble = ss.getRangeByName('MNF_DOUBLE').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the bonus feature configured, add a named range "BONUS_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
+  let menu = ui.createMenu('Picks');
+    menu.addItem('Create a Form','formCreateAuto')
+      .addItem('Open Current Form','openForm');
+  if (pickems) {
+    menu.addItem('Week Sheet Creation','weeklySheetCreate');
+  }
+  menu.addSeparator();
+  if (tnfInclude) {
+    menu.addItem('Check Responses','formCheckAlert')
+      .addItem('Import Thursday Picks','dataTransferTNF')
+      .addItem('Import Picks','dataTransfer');
   } else {
-    let menu = SpreadsheetApp.getUi().createMenu('Picks');
-    menu.addItem('Create Form','formCreateAuto')
-        .addItem('Open Form','openForm')
-        .addItem('Check NFL Scores','recordNFLWeeklyScores')
-        .addSeparator()
-        .addItem('Check Responses','formCheckAlert')
-        .addItem('Import Picks','dataTransfer')
-        .addSeparator()
-        .addItem('Add Member(s)','memberAdd')
-        .addItem('Remove Member','memberRemove')
-        .addItem('Lock Members','createMenuLockedWithTrigger')
-        .addSeparator()
-        .addItem('Update NFL Schedule', 'fetchNFL')
-        .addToUi();
+    menu.addItem('Check Responses','formCheckAlert')
+      .addItem('Import Picks','dataTransfer');
   }
-  if (trigger == true) {
-      deleteTriggers();
-      let id = SpreadsheetApp.getActiveSpreadsheet().getId();
-      ScriptApp.newTrigger('createMenuUnlocked')
-        .forSpreadsheet(id)
-        .onOpen()
-        .create();
-  }
-}
-// CREATE MENU For general use with locked MEMBERS sheet
-function createMenuLocked(trigger) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (ss.getRangeByName('PICKEMS_PRESENT').getValue() != false) {
-    let tnfInclude = true;
-    try{
-      tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
-    }
-    catch (err) {
-      Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
-    }
-    if (tnfInclude == true) {
-      let menu = SpreadsheetApp.getUi().createMenu('Picks');
-      menu.addItem('Create Form','formCreateAuto')
-          .addItem('Open Form','openForm')
-          .addItem('Check NFL Scores','recordNFLWeeklyScores')
-          .addSeparator()
-          .addItem('Check Responses','formCheckAlert')
-          .addItem('Import Picks','dataTransfer')
-          .addItem('Import Thursday Picks','dataTransferTNF')
-          .addSeparator()
-          .addItem('Reopen Members','createMenuUnlockedWithTrigger')
-          .addSeparator()
-          .addItem('Update NFL Schedule', 'fetchNFL')  
-          .addToUi();
-    } else {
-      let menu = SpreadsheetApp.getUi().createMenu('Picks');
-      menu.addItem('Create Form','formCreateAuto')
-          .addItem('Open Form','openForm')
-          .addItem('Check NFL Scores','recordNFLWeeklyScores')
-          .addSeparator()
-          .addItem('Check Responses','formCheckAlert')
-          .addItem('Import Picks','dataTransfer')
-          .addSeparator()
-          .addItem('Reopen Members','createMenuUnlockedWithTrigger')
-          .addSeparator()
-          .addItem('Update NFL Schedule', 'fetchNFL')  
-          .addToUi();      
-    }
+  menu.addSeparator()
+    .addItem('Check NFL Scores','recordNFLWeeklyScores')
+    .addItem('Update NFL Schedule', 'fetchNFL');
+  menu.addSeparator();
+  if (!bonus) {
+    menu.addItem('Enable Bonus','bonusUnhide');
+  } else if (mnfDouble) {
+    menu.addSubMenu(ui.createMenu('Bonus')
+      .addItem('Hide Game Bonus Value Row','bonusHide')
+      .addItem('MNF Double Value Disable','bonusDoubleMNFDisable')
+      .addItem('Random Game of the Week','bonusRandomGame'));
   } else {
-    let menu = SpreadsheetApp.getUi().createMenu('Picks');
-    menu.addItem('Create Form','formCreateAuto')
-        .addItem('Open Form','openForm')
-        .addItem('Check NFL Scores','recordNFLWeeklyScores')
-        .addSeparator()
-        .addItem('Check Responses','formCheckAlert')
-        .addItem('Import Picks','dataTransfer')
-        .addSeparator()
-        .addItem('Reopen Members','createMenuUnlockedWithTrigger')
-        .addSeparator()
-        .addItem('Update NFL Schedule', 'fetchNFL')  
-        .addToUi();    
+    menu.addSubMenu(ui.createMenu('Bonus')
+      .addItem('Hide Game Bonus Value Row','bonusHide')
+      .addItem('MNF Double Value Enable','bonusDoubleMNFEnable')
+      .addItem('Random Game of the Week','bonusRandomGame'));
   }
-  if (trigger == true) {
+  menu.addSeparator();
+  if (!lock) {
+  menu.addItem('Add Member(s)','memberAdd')
+    .addItem('Remove Member','memberRemove')
+    .addItem('Lock Members','createMenuLocked');
+  } else {
+    menu.addItem('Reopen Members','createMenuUnlocked');
+  }
+  menu.addToUi();
+  if (trigger) {
     deleteTriggers();
-    var id = SpreadsheetApp.getActiveSpreadsheet().getId();
-    ScriptApp.newTrigger('createMenuLocked')
+    let id = ss.getId();
+    ScriptApp.newTrigger('createMenu')
       .forSpreadsheet(id)
       .onOpen()
       .create();
   }
 }
-// CREATE MENU UNLOCKED MEMBERSHIP with Trigger Input
-function createMenuUnlockedWithTrigger(init) {
-  createMenuUnlocked(true);
-  membersSheetUnlock();
-  memberAddForm(); // default action with no arguments is to add 'New User' to this week's form
-  Logger.log('Menu updated to an open membership, MEMBERS unlocked');
-  if (init != true) {
-    var ui = SpreadsheetApp.getUi();
-    ui.alert('New entrants will be allowed through the Form and through the \"Picks\" menu function: \"Add Member(s)\". Run \"Lock Members\" to prevent new additions in the Form and menu.', SpreadsheetApp.getUi().ButtonSet.OK);
-  }
-}
-// CREATE MENU UNLOCKED MEMBERSHIP with Trigger Input on first pass (skips prompt)
-function createMenuUnlockedWithTriggerFirst() {
-  createMenuUnlockedWithTrigger(true);
-}
-// CREATE MENU LOCKED MEMBERSHIP with Trigger Input
-function createMenuLockedWithTrigger(init) {
-  createMenuLocked(true);
+
+// CREATE MENU LOCKED
+function createMenuLocked() {
+  createMenu(true,true);
   membersSheetLock();
   removeNewUserQuestion(); // Removes 'New User' from Form
   SpreadsheetApp.getActiveSpreadsheet().getSheetByName('MEMBERS').hideSheet();
   Logger.log('Menu updated to a locked membership, MEMBERS locked');
-  if (init != true) {
-    let ui = SpreadsheetApp.getUi();
-    ui.alert('New entrants will not be allowed through the Form nor through the menu unless \"Reopen Members\" script is run. Run \"Reopen Members\" to allow new additions in the Form and menu', SpreadsheetApp.getUi().ButtonSet.OK);
-  }
+  let ui = SpreadsheetApp.getUi();
+  ui.alert('MEMBERSHIP LOCKED\r\n\r\nNew entrants will not be allowed through the Form nor through the menu unless \"Reopen Members\" script is run.\r\n\r\nRun \"Reopen Members\" to allow new additions in the Form and menu', SpreadsheetApp.getUi().ButtonSet.OK); 
 }
-// CREATE MENU LOCKED MEMBERSHIP with Trigger Input on first pass (skips prompt)
-function createMenuLockedWithTriggerFirst() {
-  createMenuLockedWithTrigger(true);
+
+// CREATE MENU UNLOCKED MEMBERSHIP - with Trigger Input
+function createMenuUnlocked() {
+  createMenu(false,true);
+  membersSheetUnlock();
+  memberAddForm(); // default action with no arguments is to add 'New User' to this week's form
+  Logger.log('Menu updated to an open membership, MEMBERS unlocked');
+  let ui = SpreadsheetApp.getUi();
+  ui.alert('MEMBERSHIP UNLOCKED\r\n\r\nNew entrants will be allowed through the Form and through the \"Picks\" menu function: \"Add Member(s)\".\r\n\r\nRun \"Lock Members\" to prevent new additions in the Form and menu.', SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+// CREATE MENU UNLOCKED MEMBERSHIP with Trigger Input on first pass (skips prompt)
+function createMenuFirst(lock) {
+  createMenu(lock,true);
 }
 
 //------------------------------------------------------------------------
@@ -511,21 +543,21 @@ function memberList() {
           }
         }
         if (duplicates.length > 0) {
-          ui.alert('You\'ve entered one or more duplicate names, try again and ensure each name is entered once.\r\n\r\nDuplicate(s): ' + duplicates, ui.ButtonSet.OK);
+          ui.alert('DUPLICATE\r\n\r\nYou\'ve entered one or more duplicate names, try again and ensure each name is entered once.\r\n\r\nDuplicate(s): ' + duplicates, ui.ButtonSet.OK);
         } else if (members.length < 2) {
-          ui.alert('Please enter at least 2 names', ui.ButtonSet.OK);
+          ui.alert('MEMBER MINIMUM\r\n\r\nPlease enter at least 2 names', ui.ButtonSet.OK);
         } else {
           let text = '';
           for (let a = 0; a < members.length; a++) {
             text = text + members[a] + '\r\n';
           }
-          prompt = ui.alert('This is the list you entered:\r\n\r\n' + text + '\r\n\Would you like to proceed?', ui.ButtonSet.YES_NO);
+          prompt = ui.alert('MEMBERS\r\n\r\nThis is the list you entered:\r\n\r\n' + text + '\r\n\Would you like to proceed?', ui.ButtonSet.YES_NO);
           if (prompt == 'YES') {
             valid = true;
           }
         }
       } else {
-        prompt = ui.alert('It is critical to create a member list for using this spreadsheet and form generator. Do you really want to cancel?', ui.ButtonSet.YES_NO);
+        prompt = ui.alert('ALERT!\r\n\r\nIt is critical to create a member list for using this spreadsheet and form generator. Do you really want to cancel?', ui.ButtonSet.YES_NO);
         if (prompt == 'YES') {
           valid = true;
         }
@@ -536,7 +568,6 @@ function memberList() {
   }
 }
 
-//------------------------------------------------------------------------
 // MEMBERS Addition for adding new members later in the season
 function memberAdd(name) {
   const ui = SpreadsheetApp.getUi();
@@ -553,7 +584,7 @@ function memberAdd(name) {
   }
   let cancel = true;
   if (name == null) {
-    prompt = ui.prompt('Please enter one member or a comma-separated list of members to add:', ui.ButtonSet.OK_CANCEL);
+    prompt = ui.prompt('ADD MEMBER(S)\r\n\r\nPlease enter one member or a comma-separated list of members to add:', ui.ButtonSet.OK_CANCEL);
     name = prompt.getResponseText();
     if (prompt.getSelectedButton() == 'OK' && prompt.getResponseText() != null) {
       cancel = false;
@@ -580,7 +611,7 @@ function memberAdd(name) {
         ss.setNamedRange('MEMBERS',range);
         names.push(arr[a]);
       } else {
-        prompt = ui.alert('A member with name ' + arr[a] + ' already exists.', ui.ButtonSet.OK);
+        prompt = ui.alert('MEMBER EXISTS\r\n\r\nA member with name ' + arr[a] + ' already exists.', ui.ButtonSet.OK);
         ss.toast('Unable to add ' + arr[a] + ' due to duplication.\r\n\r\nRe-run the \"Add Member(s)\" function again.');
       }
     }
@@ -640,8 +671,6 @@ function memberAdd(name) {
   }
 }
 
-
-//------------------------------------------------------------------------
 // MEMBERS Addition for adding new members later in the season
 function memberRemove(name) {
   const ui = SpreadsheetApp.getUi();
@@ -669,7 +698,7 @@ function memberRemove(name) {
     cancel = false;
   }
   if (name != null && cancel == false && members.flat().indexOf(name) >= 0) {
-    prompt = ui.alert('Found member named ' + name + ', are you sure you want to remove this member?', ui.ButtonSet.YES_NO);
+    prompt = ui.alert('MEMBER FOUND\r\n\r\nFound member named ' + name + ', are you sure you want to remove this member?', ui.ButtonSet.YES_NO);
     if (prompt == ui.Button.YES) {
       const year = fetchYear();
       membersSheet.deleteRow(members.flat().indexOf(name)+1);
@@ -717,8 +746,6 @@ function memberRemove(name) {
   }
 }
 
-
-//------------------------------------------------------------------------
 // MEMBERS Addition for adding new members later in the season
 function memberAddForm(names,week){
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -761,12 +788,12 @@ function memberAddForm(names,week){
               if (names[a] == 'New User') {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],newUserPage);
                 Logger.log('New user \"' + names[a] + '\" is redirected to the \"' + newUserPage.getTitle() + '\" Form page');
-                choices.unshift(newChoice);
               } else {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],gotoPage);
                 Logger.log('New user \"' + names[a] + '\" is redirected to the \"' + gotoPage.getTitle() + '\" Form page');
-                choices.push(newChoice);
-              }              
+              }
+              choices.push(newChoice);
+              
             }
             nameQuestion.asListItem().setChoices(choices);
           }
@@ -779,7 +806,7 @@ function memberAddForm(names,week){
             for (let a = 0; a < names.length; a++) {
               if (names[a] == 'New User') {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],newUserPage);
-                choices.unshift(newChoice);
+                choices.push(newChoice);
                 Logger.log('New user \"' + names[a] + '\" is redirected to the \"' + newUserPage.getTitle() + '\" Form page');
               } else {
                 newChoice = nameQuestion.asListItem().createChoice(names[a],FormApp.PageNavigationType.SUBMIT);
@@ -805,6 +832,7 @@ function memberAddForm(names,week){
   }
 }
 
+// SEASON INFORMATION FUNCTIONS
 //------------------------------------------------------------------------
 // FETCH CURRENT YEAR
 function fetchYear() {
@@ -830,7 +858,6 @@ function fetchYear() {
   }
 }
 
-//------------------------------------------------------------------------
 // FETCH CURRENT WEEK
 function fetchWeek() {
   try {
@@ -866,7 +893,6 @@ function fetchWeek() {
   }  
 }
 
-//------------------------------------------------------------------------
 // FETCH TOTAL WEEKS
 function fetchWeeks() {
   try {
@@ -888,6 +914,7 @@ function fetchWeeks() {
   }
 }
 
+// ESPN FUNCTIONS
 //------------------------------------------------------------------------
 // ESPN TEAMS - Fetches the ESPN-available API data on NFL teams
 function fetchTeamsESPN() {
@@ -897,7 +924,6 @@ function fetchTeamsESPN() {
   return objTeams;
 }
 
-//------------------------------------------------------------------------
 // NFL TEAM INFO - script to fetch all NFL data for teams
 function fetchNFL() {
   // Calls the linked spreadsheet
@@ -1123,7 +1149,6 @@ function fetchNFL() {
   ss.toast('Imported all NFL schedule data');
 }
 
-//------------------------------------------------------------------------
 // NFL ACTIVE WEEK SCORES - script to check and pull down any completed matches and record them to the weekly sheet
 function recordNFLWeeklyScores(){
   
@@ -1176,12 +1201,13 @@ function recordNFLWeeklyScores(){
         ss.toast('Issue with fetching weekly sheet or named ranges on weekly sheet, recreating now.');
         weeklySheet(year,week,memberList(),false);
       }
+      let regex = new RegExp('[A-Z]{2,3}','g');
       let arr = [];
       for (let a = 0; a < matchups.length; a++){
-        let away = matchups[a].split('@')[0];
-        let home = matchups[a].split('@')[1];
-        let outcome;
-        let regex = new RegExp('[A-Z]{2,3}');
+        let game = matchups[a].match(regex);
+        let away = game[0];
+        let home = game[1];
+        let outcome;        
         try {
           outcome = [];
           for (let b = 0; b < data.length; b++) {
@@ -1250,7 +1276,7 @@ function recordNFLWeeklyScores(){
   }
   if (done) {  
     if (survivorInclude == true) {
-      let prompt = ui.alert('WEEK ' + week + ' COMPLETE \r\n\r\nAdvance survivor pool?', ui.ButtonSet.YES_NO); 
+      let prompt = ui.alert('WEEK ' + week + ' COMPLETE\r\n\r\nAdvance survivor pool?', ui.ButtonSet.YES_NO); 
       if ( prompt == 'YES' ) {
         ss.getRangeByName('WEEK').setValue(week+1);
       } else {
@@ -1266,7 +1292,6 @@ function recordNFLWeeklyScores(){
   }
 }
 
-//------------------------------------------------------------------------
 // NFL OUTCOMES - Records the winner and combined tiebreaker for each matchup on the NFL_{year} sheet
 function fetchNFLWeeklyScores(){
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1362,6 +1387,7 @@ function fetchNFLWeeklyScores(){
   }
 }
 
+// SHEET CREATION
 //------------------------------------------------------------------------
 // SHEET FOR LOGGING ALL OUTCOMES - creates a set of columns (one per week) on a sheet with a dedicated data validation rule per game to select from if not using import features
 function nflOutcomesSheet(year) {
@@ -1469,8 +1495,6 @@ function nflOutcomesSheet(year) {
   let game = 1;
   let week;
   let formats = [];
-  let emptyArray = ['#fffdcc','#e7fed1','#cffdda','#bbfbe7','#adf7f5'];
-  let filledArray = ['#fffb95','#d4ffa6','#abffbf','#89fddb','#74f7f3'];
   for (let row = 0; row < data.length; row++) {
     if (tnfInclude == true || (tnfInclude == false && data[row][2] >= 0)) {
       if (data[row][0] != week) { // Checks if new row has a new week value
@@ -1483,18 +1507,18 @@ function nflOutcomesSheet(year) {
       let rules = SpreadsheetApp.newDataValidation().requireValueInList([data[row][6],data[row][7],'TIE'], true).build();
       writeCell.setDataValidation(rules);
       let awayWin = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo(data[row][6])
-      .setBold(false)
-      .setRanges([writeCell]);
+        .whenTextEqualTo(data[row][6])
+        .setBold(false)
+        .setRanges([writeCell]);
       let homeWin = SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo(data[row][7])
-      .setBold(true)
-      .setRanges([writeCell]);
+        .whenTextEqualTo(data[row][7])
+        .setBold(true)
+        .setRanges([writeCell]);
       // Color Coding Days
       let dayIndex = data[row][2] + 3; // Numeric day used for gradient application (-3 is Thursday, 1 is Monday);
-      writeCell.setBackground(emptyArray[dayIndex]);
-      awayWin.setBackground(filledArray[dayIndex]);
-      homeWin.setBackground(filledArray[dayIndex]);
+      writeCell.setBackground(dayColors[dayIndex]);
+      awayWin.setBackground(dayColorsFilled[dayIndex]);
+      homeWin.setBackground(dayColorsFilled[dayIndex]);
       awayWin.build();
       homeWin.build();
       formats.push(awayWin);
@@ -1512,103 +1536,120 @@ function nflOutcomesSheet(year) {
   Logger.log('Completed setting up NFL Winners sheet');
 }
 
-//------------------------------------------------------------------------
 // UPDATE OUTCOMES - Updates the data validation, color scheme, and matchups for a specific week on the NFL Winners sheet
-function nflOutcomesSheetUpdate(year,week,games) {
+function nflOutcomesSheetUpdate(year,week,equations) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const startRow = 3;
   if (year == null) {
     year = fetchYear();
+  }
+  if (week == null) {
+    week = fetchWeek();
   }
   let sheet = ss.getSheetByName('NFL_OUTCOMES');
   if (sheet == null) {
     sheet = nflOutcomesSheet(year);
   }
 
-  let maxCols = sheet.getMaxColumns();
-  
-  // Clears data validation and notes
-  let matchups = ss.getRangeByName('NFL_'+year+'_OUTCOMES_'+week);
-  let rows = matchups.getNumRows();
-  matchups.clearDataValidations();
-  matchups.clearNote();
-
-  let existingRules = sheet.getConditionalFormatRules();
-  let rulesToKeep = [];
-  let newRules = [];
-  for (let a = 0; a < existingRules.length; a++) {
-    let ranges = existingRules[a].getRanges();
-    for (let b = 0; b < ranges.length; b++) {
-      if (ranges[b].getA1Notation() != matchups) {
-        rulesToKeep.push(existingRules[a]);
-      }
+  let data = ss.getRangeByName('NFL_2023').getValues();
+  if (data == null) {
+    fetchNFL();
+  }
+  let days = [], games = [];
+  for (let a = 0; a < data.length; a++) {
+    if (data[a][0] == week) {
+      days.push(data[a][2]+3); // Numeric day used for gradient application (-3 is Thursday, 1 is Monday);
+      games.push([data[a][6],data[a][7]]);
     }
   }
-
-  let emptyArray = ['#fffdcc','#e7fed1','#cffdda','#bbfbe7','#adf7f5'];
-  let filledArray = ['#fffb95','#d4ffa6','#abffbf','#89fddb','#74f7f3'];
-  
-  for (let row = 0; row < games.length; row++) {
-    let away = games[row][1];
-    let home = games[row][2];
+  if (equations != true) {
     
-    let writeCell = sheet.getRange(row + 3,week);
-    let rules = SpreadsheetApp.newDataValidation().requireValueInList([away,home,'TIE'], true).build();
-    writeCell.setDataValidation(rules);
-    let awayWin = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo(away)
-    .setBold(false)
-    .setRanges([writeCell]);
-    let homeWin = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo(home)
-    .setBold(true)
-    .setRanges([writeCell]);
-    // Color Coding Days
-    let dayIndex = games[row][0] + 3; // Numeric day used for gradient application (-3 is Thursday, 1 is Monday);
-    writeCell.setBackground(emptyArray[dayIndex]);
-    awayWin.setBackground(filledArray[dayIndex]);
-    homeWin.setBackground(filledArray[dayIndex]);
-    awayWin.build();
-    homeWin.build();
-    newRules.push(awayWin);
-    newRules.push(homeWin);
-  }
-  let ties = SpreadsheetApp.newConditionalFormatRule()
-    .whenTextEqualTo('TIE')
-    .setBold(false)
-    .setBackground('#aaaaaa')
-    .setRanges([sheet.getRange(matchups.getRow(),1,maxCols,rows)])
-    .build();
-  newRules.push(ties);
+    // Clears data validation and notes
+    let matchups = ss.getRangeByName('NFL_'+year+'_OUTCOMES_'+week);
+    matchups.clearDataValidations();
+    matchups.clearNote();
 
-  let allRules = rulesToKeep.concat(newRules);
-  //clear all rules first and then add again
-  sheet.clearConditionalFormatRules();
-  sheet.setConditionalFormatRules(allRules);
+    let existingRules = sheet.getConditionalFormatRules();
+    let rulesToKeep = [];
+    let newRules = [];
+    for (let a = 0; a < existingRules.length; a++) {
+      let ranges = existingRules[a].getRanges();
+      for (let b = 0; b < ranges.length; b++) {
+        if (ranges[b].getColumn() != matchups.getColumn()) {
+          rulesToKeep.push(existingRules[a]);
+        }
+      }
+    }
+
+    let start = startRow;
+    let end = start+1;
+    for (let a = 0; a < days.length; a++) {
+      sheet.getRange(a+startRow,week).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([games[a][0],games[a][1],'TIE'], true).build());
+      // Color Coding Days
+      if (days[a] != days[a+1]) {
+        sheet.getRange(start,week,end-start,1).setBackground(dayColors[days[a]]);
+        let homeWin = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormulaSatisfied('=iferror(match(indirect(\"R[0]C[0]\",false),indirect(\"NFL_'+year+'_HOME_'+week+'\"),0)>=0,false)')
+          .setBackground(dayColorsFilled[days[a]])
+          .setBold(true)
+          .setRanges([sheet.getRange(start,week,end-start,1)])
+          .build();
+        newRules.push(homeWin);
+        let awayWin = SpreadsheetApp.newConditionalFormatRule()
+          .whenCellNotEmpty()
+          .setBackground(dayColorsFilled[days[a]])
+          .setRanges([sheet.getRange(start,week,end-start,1)])
+          .build();
+        newRules.push(awayWin);
+        start = end;
+      }
+      end++;
+    }
+    let ties = SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('TIE')
+      .setBold(false)
+      .setBackground('#BBBBBB')
+      .setRanges([sheet.getRange(startRow,week,days.length,1)])
+      .build();
+    newRules.push(ties);
+
+    let allRules = rulesToKeep.concat(newRules);
+    //clear all rules first and then add again
+    sheet.clearConditionalFormatRules();
+    sheet.setConditionalFormatRules(allRules);
+  }
+
   let weeklySheetName = (year + '_' + week);
   if (week < 10) {
     weeklySheetName = (year + '_0' + week);
   }
   let sourceSheet = ss.getSheetByName(weeklySheetName);
-  if (sourceSheet != null && ss.getRangeByName('PICKEMS_PRESENT').getValue() == true) {
+  if (sourceSheet != null && ss.getRangeByName('PICKEMS_PRESENT').getValue()) {
     const targetSheet = ss.getSheetByName('NFL_OUTCOMES');
     const sourceRange = ss.getRangeByName('NFL_'+year+'_PICKEM_OUTCOMES_'+week);
     const targetRange = ss.getRangeByName('NFL_'+year+'_OUTCOMES_'+week);
-    const row = sourceRange.getRow();
+    let row = sourceRange.getRow();
     let data = targetRange.getValues().flat();
-    let regex = new RegExp('[A-Z]{2,3}');
-    for (let a = 1; a <= games.length; a++) {
-      if (regex.test(data[a-1])) {
-        Logger.log('Found existing data at ' + (a+1) + ' of value ' + data[a-1]);
-      } else {
+    for (let a = 1; a <= sourceRange.getNumColumns(); a++) {
+      if (data[a-1] == null || data[a-1] == '') {
         let formula = '=\''+weeklySheetName+'\'!'+sourceSheet.getRange(row,sourceRange.getColumn()+(a-1)).getA1Notation();
         targetSheet.getRange(targetRange.getRow()+(a-1),targetRange.getColumn()).setFormula(formula);        
       }
     }
-  }  
+  } else if (sourceSheet == null) {
+    Logger.log('No sheet created yet for week ' + week);
+    const ui = SpreadsheetApp.getUi();
+    let prompt = ui.alert('No sheet created yet for week ' + week + '.\r\n\r\nWould you like to create a weekly sheet now?',ui.ButtonSet.OK_CANCEL);
+    if (prompt == ui.Button.OK) {
+      weeklySheetCreate(week,false);
+    }
+  } else {
+    Logger.log('Pick \'Ems not present for running the formula portion of NFL Outcomes Update script');
+  }
 }
 
-//------------------------------------------------------------------------
-function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,commentInclude,survivorInclude,survivorStart) {
+// CONFIG SHEET - Sheet with all recorded customizations as well as logging the URLs for the weekly forms created by the script
+function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,tiebreaker,commentInclude,bonus,survivorInclude,survivorStart) {
   
   let ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -1627,6 +1668,12 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,c
     }
     if (tnfInclude == null) {
       tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+    }
+    if (tiebreaker == null) {
+      tiebreaker = ss.getRangeByName('TIEBREAKER_PRESENT').getValue();
+    }
+    if (bonus == null) {
+      bonus = ss.getRangeByName('BONUS_PRESENT').getValue();
     }
     if (survivorInclude == null) {
       survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
@@ -1655,9 +1702,14 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,c
       name = 'NFL Survivor Pool';
     }
   }
-  let array = [['NAME',name],['ACTIVE\ WEEK',week],['TOTAL\ WEEKS',weeks],['YEAR',year],['PICK\ \'EMS',pickemsInclude],['MNF',mnfInclude],['TNF',tnfInclude],['COMMENTS',commentInclude],['SURVIVOR',survivorInclude],['SURVIVOR\ DONE','=iferror(if(indirect(\"SURVIVOR_EVAL_REMAINING\")<=1,true,false))'],['SURVIVOR\ START',survivorStart]];
+  let array = [['NAME',name],['ACTIVE\ WEEK',week],['TOTAL\ WEEKS',weeks],['YEAR',year],['PICK\ \'EMS',pickemsInclude],['MNF',mnfInclude],['TNF',tnfInclude],['TIEBREAKERS',tiebreaker],['BONUS GAMES',bonus],['MNF DOUBLE',false],['COMMENTS',commentInclude],['SURVIVOR',survivorInclude],['SURVIVOR\ DONE',''],['SURVIVOR\ START',survivorStart]];
   let endData = array.length;
-  let arrayNamedRanges = ['NAME','WEEK','WEEKS','YEAR','PICKEMS_PRESENT','MNF_PRESENT','TNF_PRESENT','COMMENTS_PRESENT','SURVIVOR_PRESENT','SURVIVOR_DONE','SURVIVOR_START'];
+  let arrayNamedRanges = ['NAME','WEEK','WEEKS','YEAR','PICKEMS_PRESENT','MNF_PRESENT','TNF_PRESENT','TIEBREAKER_PRESENT','BONUS_PRESENT','MNF_DOUBLE','COMMENTS_PRESENT','SURVIVOR_PRESENT','SURVIVOR_DONE','SURVIVOR_START'];
+  const trueFalseCount = 9; // Number of named ranges with true and false values for conditional formatting
+  const dataValidationCount = 8; // Number of named ranges with data validation rules
+
+  // Puts formula in survivor done cell (likely needs to be replaced to trigger recalculation later)
+  survivorDoneFormula(ss);
 
   // Fix total rows and columns
   if(sheet.getMaxRows() > (endData + weeks + 2)) {
@@ -1700,15 +1752,15 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,c
   sheet.getRange(2,2).setDataValidation(rule);
   
   rule = SpreadsheetApp.newDataValidation().requireValueInList([true,false], true).build();
-  let range = sheet.getRange(5,2,5,1);
+  let range = sheet.getRange(5,2,dataValidationCount,1);
   range.setDataValidation(rule);
   rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(weeksArr)
     .build();
-  sheet.getRange((endData-1),2).setDataValidation(rule);
+  sheet.getRange(endData,2).setDataValidation(rule);
   
   // TRUE COLOR FORMAT
-  range = sheet.getRange(5,2,6,1);
+  range = sheet.getRange(5,2,trueFalseCount,1);
   let formatTrue = SpreadsheetApp.newConditionalFormatRule()
     .whenTextContains("true")
     .setBackground('#c9ffdf')
@@ -1756,7 +1808,6 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,c
   return sheet;
 }
 
-//------------------------------------------------------------------------
 // MEMBERS Sheet Creation / Adjustment 
 function memberSheet(members) {
   
@@ -1801,7 +1852,6 @@ function memberSheet(members) {
   return sheet;
 }
 
-//------------------------------------------------------------------------
 // MEMBERS Sheet Check if protected returns true or false
 function membersSheetProtected() {
   let locked = false;
@@ -1821,7 +1871,6 @@ function membersSheetProtected() {
   return locked;
 }
 
-//------------------------------------------------------------------------
 // MEMBERS Sheet Locking (protection)
 function membersSheetLock() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1830,7 +1879,6 @@ function membersSheetLock() {
   Logger.log('locked MEMBERS');
 }
 
-//------------------------------------------------------------------------
 // MEMBERS Sheet Unlocking (remove protection);
 function membersSheetUnlock() {
   try {
@@ -1847,8 +1895,7 @@ function membersSheetUnlock() {
   }  
 }
 
-//------------------------------------------------------------------------
-// WEEKLY Sheet Function - creates a sheet with provided year and week
+// WEEKLY Sheet Creation Function - creates a sheet with provided year and week
 function weeklySheet(year,week,members,dataRestore) {
   
   if (year == null) {
@@ -1862,9 +1909,16 @@ function weeklySheet(year,week,members,dataRestore) {
   }
   let totalMembers = members.length;
 
+  if (totalMembers <= 0) {
+    let ui = SpreadsheetApp.getUi();
+    ui.alert('MEMBER ISSUE\r\n\r\nThere was an issue fetching the members to create the weekly sheet, ensure that there are member names in the named range \"MEMBERS\" and try again', ui.ButtonSet.OK);
+    throw new Error('Error fetching members to create weekly sheet');
+  }
+
   let ss = SpreadsheetApp.getActiveSpreadsheet();
 
   let mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
+  // Check value for Thursday inclusion, throw logger message if user is using a previous version of the script that didn't create it on the CONFIG sheet
   let tnfInclude = true;
   try{
     tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
@@ -1872,13 +1926,39 @@ function weeklySheet(year,week,members,dataRestore) {
   catch (err) {
     Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
   }
+
+  // Check value for tiebreaker selection inclusion, throw logger message if user is using a previous version of the script that didn't create it on the CONFIG sheet
+  let tiebreaker = true;
+  try{
+    tiebreaker = ss.getRangeByName('TIEBREAKER_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the tiebreaker selection feature configured, add a named range "TIEBREAKER_PRESENT" somewhere on a blank CONFIG sheet cell (hidden by default) with a value of FALSE to exclude having a weekly tiebreaker');
+  }
+
+  // Check value for tiebreaker selection inclusion, throw logger message if user is using a previous version of the script that didn't create it on the CONFIG sheet
+  let bonus = false;
+  try{
+    bonus = ss.getRangeByName('BONUS_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the bonus scoring feature configured, add a named range "BONUS_PRESENT" somewhere on a blank CONFIG sheet cell (hidden by default) with a value of TRUE to expose the 2x and 3x weighting feature for some games');
+  }
+
+  // Check value for tiebreaker selection inclusion, throw logger message if user is using a previous version of the script that didn't create it on the CONFIG sheet
+  let mnfDouble = false;
+  try{
+    mnfDouble = ss.getRangeByName('MNF_DOUBLE').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the MNF doubled value feature configured, add a named range "MNF_DOUBLE" somewhere on a blank CONFIG sheet cell (hidden by default) with a value of TRUE to automatically mark MNF games as 2x value');
+  }
+
   let commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
 
   let sheet, sheetName;
   let data = ss.getRangeByName('NFL_' + year).getValues(); //Grab again if wasn't populated before      
   
-  let mnf = false;
-  let tnf = false;
   let diffCount = (totalMembers - 1) >= 5 ? 5 : (totalMembers - 1); // Number of results to display for most similar weekly picks (defaults to 5, or 1 fewer than the total member count, whichever is larger)
   
   if ( week < 10 ) {
@@ -1886,10 +1966,20 @@ function weeklySheet(year,week,members,dataRestore) {
   } else {
     sheetName = year + '_' + week;
   }
+
+  const matchRow = 1; // Row for all NFL matchups
+  const dayRow = matchRow + 1; // Row for denoting day of the week
+  const entryRowStart = dayRow + 1; // Row of first user input on weekly sheet
+  const entryRowEnd = (entryRowStart - 1) + totalMembers; // Includes any header rows (entryRowStart-1) and adds two additional for final row of home/away splits and then bonus values
+  const summaryRow = entryRowEnd + 1; // Row for group averages (away/home) and other calculated values
+  const outcomeRow = summaryRow + 1; // Row for NFL matchup outcomes
+  const bonusRow = outcomeRow + 1; // Row for adding bonus drop-downs
+  const rows = bonusRow; // Declare row variable, unnecessary, but easier to work with  
+  const pointsCol = 2;
+
+  let columns, fresh = false;
   
-  let rows = totalMembers + 3; // Accounting for the top two rows above member rows
-  let columns;
-  let fresh = false;
+  // Checks for sheet presence and creates if necessary
   sheet = ss.getSheetByName(sheetName);  
   if (sheet == null) {
     dataRestore = false;
@@ -1901,60 +1991,183 @@ function weeklySheet(year,week,members,dataRestore) {
   let maxRows = sheet.getMaxRows();
   let maxCols = sheet.getMaxColumns();
   
-  // In case there were too few columns initially, adding extra
-  if (maxCols < 24) {
-    sheet.insertColumnsAfter(maxCols,24 - maxCols);
-  }
-  let tiebreakerCol, commentCol;
-  let previousDataRange, previousData;
-  let previousCommentRange, previousComment;
-  if (dataRestore == true && fresh == false){
-    let headers = sheet.getRange('A1:1').getValues().flat();
-    headers.unshift('COL INDEX ADJUST');
-    tiebreakerCol = headers.indexOf('TIEBREAKER');
-    commentCol = headers.indexOf('COMMENT');
-    if (tiebreakerCol  >= 0) {
-      previousDataRange = sheet.getRange(2,5,maxRows-2,tiebreakerCol-4);
+  // DATA GATHERING IF DATA RESTORE ACTIVE
+  let regex, commentCol, tiebreakerCol, firstInput, finalInput, previousRows, previousNames, previousData, previousOutcomes, previousComment, previousTiebreaker, previousTiebreakers, previousBonus = null, previousNamesRange, previousDataRange, previousOutcomesRange, previousCommentRange, previousTiebreakersRange, matchupStartCol, matchupEndCol;
+  if (dataRestore == true && fresh == false) {
+    
+    // Get first column of values from sheet and check for data input range rows
+    let firstCol = sheet.getRange('A1:A').getValues().flat();
+    firstCol.unshift('ROW INDEX ADJUST');
+    try {
+      previousNamesRange = ss.getRangeByName('NAMES_'+year+'_'+week);
+      previousNames = previousNamesRange.getValues().flat();
+      firstInput = previousNamesRange.getRow();
+      finalInput = previousNamesRange.getLastRow();
+    }
+    catch (err) {
+      Logger.log('No previous names named range found, attempting to find data rows by column values');
+      regex = new RegExp('NFL MATCHES');
+      if (regex.test(firstCol)) {
+        for (let a = 0; a < firstCol.length; a++) {
+          if (regex.test(firstCol[a])) {
+            firstInput = a+1; // Denotes the row below finding "NFL MATCHES" to mark as first user input row
+          }
+        }
+      } else {
+        firstInput = entryRowStart;
+      }
+      finalInput = firstCol.indexOf('PREFERRED');
+      if (finalInput == -1) {
+        finalInput = maxRows - 1;
+      }
+    }
+    previousRows = finalInput - firstInput;
+    
+    let previousHeaders = sheet.getRange('A1:1').getValues().flat();
+    previousHeaders.unshift('COL INDEX ADJUST');
+
+    // Get matchup range and values, use column lookup if fails
+    let confirmation = 'Gathered any available previous data for week ' + week + ', recreating sheet now';
+    let noMatchups = false;
+    try {
+      previousDataRange = ss.getRangeByName('NFL_'+year+'_PICKS_'+week);
       previousData = previousDataRange.getValues();
-      ss.toast('Gathered previous data for week ' + week + ', recreating sheet now');
-    }    
-    if (commentCol  >= 0 && commentInclude == true) {
+      matchupStartCol = previousDataRange.getColumn();
+      matchupEndCol = previousDataRange.getColumn() + previousData[0].length;
+      ss.toast(confirmation);
+    }
+    catch (err) {
+      Logger.log('No previous matchup named range found, attempting to find by header index');
+      regex = new RegExp("[A-Z]{2,3}@[A-Z]{2,3}");
+      for (let a = 0; a < previousHeaders.length; a++) {
+        if (regex.test(previousHeaders[a].replace(/\s/g,''))) {
+          if (matchupStartCol == undefined) {
+            matchupStartCol = a;
+          }
+          matchupEndCol = a;
+        }
+      }
+      if (matchupStartCol != null) {
+        previousDataRange = sheet.getRange(firstInput,matchupStartCol,previousRows,matchupEndCol-matchupStartCol);
+        previousData = previousDataRange.getValues();
+        ss.toast(confirmation);
+      } else {
+        noMatchups = true;
+      }
+    }
+
+    // Check if data exists, then set dataRestore to false if no data present
+    regex = new RegExp("[A-Z]{2,3}");
+    if (!regex.test(previousData) || noMatchups) {
+      dataRestore = false;
+      ss.toast('Intended to restore data, but no data found. If there was any information present. please undo immediately if you want to retain information on sheet ' + sheetName);
+    }
+    
+    if (dataRestore) {
+      // Recover any marked outcomes if present
       try {
-        previousCommentRange = sheet.getRange(3,commentCol,maxRows-3,1);
+        previousOutcomesRange = ss.getRangeByName('NFL_'+year+'_PICKEM_OUTCOMES_'+week);
+        previousOutcomes = previousOutcomesRange.getValues().flat();
+      }
+      catch (err) {
+        Logger.log('No previous matchup outcomes named range found, referencing general location');
+        previousOutcomesRange = sheet.getRange(previousDataRange.getRow()+1,matchupStartCol,1,matchupEndCol-matchupStartCol);
+        previousOutcomes = previousOutcomesRange.getValues().flat();
+      } 
+
+      // Get tiebreaker range and values if present, use column lookup if fails
+      try {
+        previousTiebreakersRange = ss.getRangeByName('NFL_'+year+'_TIEBREAKER_'+week);
+        previousTiebreakers = previousTiebreakersRange.getValues();
+      }
+      catch (err) {
+        Logger.log('No previous tiebreaker named range found, attempting to find by header index');
+        tiebreakerCol = previousHeaders.indexOf('TIEBREAKER');
+        if (tiebreakerCol  >= 0 && tiebreaker == true) {
+          try {
+            previousTiebreakersRange = sheet.getRange(firstInput,tiebreakerCol,previousRows,1);
+            previousTiebreakers = previousTiebreakersRange.getValues();
+          }
+          catch (err) {
+            Logger.log('No previous tiebreaker data found to retain');
+          }
+        }
+      }
+      
+      // Get previous tiebreaker final game value
+      try {
+        previousTiebreaker = sheet.getRange(previousTiebreakersRange.getLastRow() + 2, previousTiebreakersRange.getColumn()).getValue();
+      }
+      catch (err) {
+        Logger.log('Unable to gather previous tiebreaker final game score value');
+      }
+
+      // Get comment range and values if present, use column lookup if fails
+      try {
+        previousCommentRange = ss.getRangeByName('COMMENTS_'+year+'_'+week);
         previousComment = previousCommentRange.getValues();
       }
       catch (err) {
-        Logger.log('No previous comment data found to retain');
+        Logger.log('No previous comment named range found, attempting to find by header index');
+        commentCol = previousHeaders.indexOf('COMMENT');
+        if (commentCol  >= 0 && commentInclude) {
+          try {
+            previousCommentRange = sheet.getRange(firstInput,commentCol,previousRows,1);
+            previousComment = previousCommentRange.getValues();
+          }
+          catch (err) {
+            Logger.log('No previous comment data found to retain');
+          }
+        }
       }
+      
+      
+      // Get bonus values if present, use row lookup if fails
+      try {
+        previousBonus = ss.getRangeByName('NFL_'+year+'_BONUS_'+week).getValues().flat();
+      }
+      catch (err) {
+        Logger.log('No previous bonus named range found, attempting to find by column index');
+        let previousBonusRow = firstCol.indexOf('BONUS');
+        if (bonusRow  >= 0) {
+          try {
+            previousBonus = sheet.getRange(previousBonusRow,matchupStartCol,1,matchupEndCol-matchupStartCol).getValues().flat();
+          }
+          catch (err) {
+            Logger.log('No previous bonus data found to retain');
+          }
+        }
+      }
+    } else {
+      Logger.log('Skipping finding any comment, tiebreaker, or bonus data due to no matchup information found');
     }
+  } else {
+    Logger.log('Skipping any data restoration features.');
   }
-  if (dataRestore == true && (tiebreakerCol == null || tiebreakerCol == -1)) {
-    dataRestore = false;
-    ss.toast('Intended to restore data, but no tiebreaker column found and therefore no data is believed to exist. Undo immediately if you want to retain information on sheet ' + sheetName);
-  }
-  sheet.clear();
+  // DATA GATHER END
 
-  // Removing extra rows, reducing to only member count and the additional 2
-  if (maxRows < rows){
-    sheet.insertRows(maxRows,rows - maxRows);
-  } else if (maxRows > rows){
-    sheet.deleteRows(rows,maxRows - rows);
-  }    
+  // CLEAR AND PREP SHEET
+  sheet.clear();
+  sheet.clearNotes();
+  sheet.getRange(1,1,sheet.getMaxRows(),sheet.getMaxColumns()).clearDataValidations();
+  adjustRows(sheet,rows);
   
   // Insert Members
-  sheet.getRange(3,1,totalMembers,1).setValues(members);
-    
+  sheet.getRange(entryRowStart,1,totalMembers,1).setValues(members);
+
   // Setting header values
-  let headersOne = ['WEEK '+week,'TOTAL','WEEKLY','PERCENT'];
-  let headersTwo = ['CORRECT','RANK','CORRECT'];
+  let headers = ['WEEK '+week,'POINTS','WEEKLY\nRANK','PERCENT\nCORRECT'];
   let bottomHeaders = ['PREFERRED','AWAY','HOME'];
-  sheet.getRange(rows,1,1,3).setValues([bottomHeaders]);
-  let widths = [120,90,90,90];
+  sheet.getRange(summaryRow,1,1,3).setValues([bottomHeaders]);
+  sheet.getRange(outcomeRow,1).setValue('OUTCOME');
+  sheet.getRange(bonusRow,1).setValue('BONUS');
+  let widths = [130,75,75,75];
 
   // Setting headers for the week's matchups with format of 'AWAY' + '@' + 'HOME', then creating a data validation cell below each
-  let firstMatchCol = (headersOne.indexOf('PERCENT'))+3;
-  let mnfCol, mnfStartCol, mnfEndCol, tnfStartCol, tnfEndCol;
-  let rule,matches = 0;
+  let firstMatchCol = headers.length + 1;
+  let mnfCol, mnfStartCol, mnfEndCol, tnfStartCol, tnfEndCol, winCol, days = [], dayRowColors = [], bonuses = [], formatRules = [];
+  let mnf = false, tnf = false; // Preliminary establishing if there are Monday or Thursday games (false by default, fixed to true when looped through matchups)
+  let rule, matches = 0;
   let exportMatches = [];
   for ( let a = 0; a < data.length; a++ ) {
     if ( data[a][0] == week && (tnfInclude == true || (tnfInclude == false && data[a][2] >= 0))) {
@@ -1962,192 +2175,223 @@ function weeklySheet(year,week,members,dataRestore) {
       let day = data[a][2];
       let away = data[a][6];
       let home = data[a][7];
-      let matchup = away + '@' + home;
+      let matchup = away + '\n@' + home;
       exportMatches.push([day,away,home]);
-      if ( day == 1 && mnfInclude == true) {
+      if ( previousBonus != null && (previousBonus[matches-1] >= 1 && previousBonus[matches-1] <= 3)) {
+        bonuses.push(previousBonus[matches-1]);
+      } else {
+        if ( day == 1 && bonus && mnfDouble) {
+          bonuses.push(2);
+        } else {
+          bonuses.push(1);
+        }
+      }
+      if ( day == 1 ) {
         mnf = true;
         if ( mnfStartCol == undefined ) {
-          mnfStartCol = headersOne.length + 1;
+          mnfStartCol = headers.length + 1;
         }
-        mnfEndCol = headersOne.length + 1;
+        mnfEndCol = headers.length + 1;
       } else if ( day == -3 ) {
         tnf = true;
         if ( tnfStartCol == undefined ) {
-          tnfStartCol = headersOne.length + 1;
+          tnfStartCol = headers.length + 1;
         }
-        tnfEndCol = headersOne.length + 1;
+        tnfEndCol = headers.length + 1;
       }
-      headersOne.push(matchup);
-      widths.push(75);
+      let dayIndex = day + 3;
+      let writeCell = sheet.getRange(dayRow,firstMatchCol+(matches-1));
+      let rule = SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied('=not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false)))')
+        .setBackground(dayColorsFilled[dayIndex])
+        .setBold(true)
+        .setRanges([writeCell]);
+      rule.build();
+      formatRules.push(rule);
+      dayRowColors.push(dayColors[dayIndex]);
+      days.push(data[a][5]);
+      headers.push(matchup);
+      widths.push(50);
       rule = SpreadsheetApp.newDataValidation().requireValueInList([data[a][6],data[a][7]], true).build();
-      sheet.getRange(2,headersOne.length).setDataValidation(rule);
+      sheet.getRange(outcomeRow,headers.length).setDataValidation(rule);
     }
   }
-  let finalMatchCol = headersOne.length;
-  headersTwo.unshift(matches + ' NFL GAMES');
 
-  headersOne = headersOne.concat(['TIEBREAKER','DIFFERENCE','WIN']);
-  widths = widths.concat([100,100,50]); // Adding widths for above values
-  tiebreakerCol =  headersOne.indexOf('TIEBREAKER')+1;
+  const finalMatchCol = headers.length;
 
-  if (mnfInclude == true && mnf == true) {
-    headersOne.push('MNF');
+  if (tiebreaker) {
+    headers.push('TIE\nBREAKER'); // Omitted if tiebreakers are removed
+    widths.push(75);
+    tiebreakerCol = headers.length;
+    headers.push('DIFF');
     widths.push(50);
-    mnfCol = headersOne.indexOf('MNF')+1;
-  }
-  if (commentInclude == true) {
-    headersOne.push('COMMENT'); // Added to allow submissions to have amusing comments, if desired
-    widths.push(125);
-    commentCol = headersOne.indexOf('COMMENT')+1;
   }
 
-  let diffCol = headersOne.length+1;
+  headers.push('WIN');
+  widths.push(50);
+  winCol = headers.indexOf('WIN')+1;
+
+  if (mnfInclude && mnf) {
+    headers.push('MNF'); // Added if user wants a MNF competition included
+    widths.push(50);
+    mnfCol = headers.indexOf('MNF')+1;
+  }
+
+  if (commentInclude) {
+    headers.push('COMMENT'); // Added to allow submissions to have amusing comments, if desired
+    widths.push(150);
+    commentCol = headers.indexOf('COMMENT')+1;
+  }
+
+  let diffCol = headers.length+1;
   let finalCol = diffCol + (diffCount-1);
 
   // Headers completed, now adjusting number of columns once headers are populated
-  if (maxCols > finalCol){
-    sheet.deleteColumns(finalCol+1,maxCols - finalCol);
-  } else if (finalCol > maxCols) {
-    sheet.insertColumnsAfter(maxCols,finalCol-maxCols);
-  }
+  adjustColumns(sheet,finalCol);
   maxCols = sheet.getMaxColumns();
 
-  sheet.getRange(1,1,1,headersOne.length).setValues([headersOne]);
-  sheet.getRange(2,1,1,headersTwo.length).setValues([headersTwo]);
+  sheet.getRange(matchRow,1,1,headers.length).setValues([headers]);
+  sheet.getRange(dayRow,firstMatchCol,1,matches).setValues([days]);
+  let bonusRange = sheet.getRange(bonusRow,firstMatchCol,1,bonuses.length);
+  bonusRange.setValues([bonuses]);
+  rule = SpreadsheetApp.newDataValidation().requireValueInList(['1','2','3'],true).build();
+  bonusRange.setDataValidation(rule);
+
   for (let a = 0; a < widths.length; a++) {
     sheet.setColumnWidth(a+1,widths[a]);
   }
   
-  sheet.getRange(1,diffCol,2,1).setValues([['MOST SIMILAR'],['\[\# DIFFERENT\]']]); // Added to allow submissions to have amusing comments, if desired
-  sheet.setColumnWidths(diffCol,diffCount,140);
-  maxCols = sheet.getMaxColumns();
+  sheet.getRange(matchRow,diffCol).setValue('SIMILAR SELECTIONS'); // Added to allow submissions to have amusing comments, if desired
+  sheet.getRange(dayRow,diffCol).setValue('Displayed as the number of picks different and the name of the member');
 
-  let validRule = SpreadsheetApp.newDataValidation().requireNumberBetween(0,120)
-    .setHelpText('Must be a number')
-    .build();
-  sheet.getRange(2,tiebreakerCol).setDataValidation(validRule);
-
-  // Declare NFL Mathcups and Winners range for the week
-  ss.setNamedRange('NFL_'+year+'_'+week,sheet.getRange(1,5,1,matches));
-  ss.setNamedRange('NFL_'+year+'_PICKEM_OUTCOMES_'+week,sheet.getRange(2,5,1,matches));
-  ss.setNamedRange('NFL_'+year+'_PICKS_'+week,sheet.getRange(3,5,totalMembers,matches));
-  if (tnf == true) {
-    ss.setNamedRange('NFL_'+year+'_THURS_PICKS_'+week,sheet.getRange(3,tnfStartCol,totalMembers,tnfEndCol-tnfStartCol+1));
-  }
-  if (mnfInclude == true) {
-    ss.setNamedRange('NFL_'+year+'_MNF_'+week,sheet.getRange(3,mnfStartCol,totalMembers,mnfEndCol-(mnfStartCol-1)));
-  }
-  ss.setNamedRange('NFL_'+year+'_TIEBREAKER_'+week,sheet.getRange(3,tiebreakerCol,totalMembers,1));
-  if (commentInclude == true) {
-    ss.setNamedRange('COMMENTS_'+year+'_'+week,sheet.getRange(3,commentCol,totalMembers,1));
-  }  
-
-  for (let row = 3; row < rows; row++ ) {
-    // Formula to determine how many correct on the week
-    sheet.getRange(row,2).setFormulaR1C1('=iferror(if(and(counta(R2C[3]:R2C['+(finalMatchCol-2)+'])>0,counta(R[0]C[3]:R[0]C['+(finalMatchCol-2)+'])>0),mmult(arrayformula(if(R2C[3]:R2C['+(finalMatchCol-2)+']=R[0]C[3]:R[0]C['+(finalMatchCol-2)+'],1,0)),transpose(arrayformula(if(not(isblank(R[0]C[3]:R[0]C['+(finalMatchCol-2)+'])),1,0)))),))');
-    // Formula to determine weekly rank
-    sheet.getRange(row,3).setFormulaR1C1('=iferror(if(and(counta(R2C[2]:R2C['+(finalMatchCol-3)+'])>0,not(isblank(R[0]C[-1]))),rank(R[0]C[-1],R3C2:R'+(totalMembers+2)+'C2,false),))');
-    // Formula to determine weekly correct percent
-    sheet.getRange(row,4).setFormulaR1C1('=iferror(if(and(counta(R2C[1]:R2C['+(finalMatchCol-4)+'])>0,not(isblank(R[0]C[-2]))),R'+row+'C[-2]/counta(R2C[1]:R2C['+(finalMatchCol-4)+']),),)');
-    // Formula to determine difference of tiebreaker from final MNF score
-    sheet.getRange(row,finalMatchCol+2).setFormulaR1C1('=iferror(if(or(isblank(R[0]C[-1]),isblank(R2C'+(finalMatchCol+1)+')),,abs(R[0]C[-1]-R2C'+(finalMatchCol+1)+')))');
-    // Formula to denote winner with a '1'
-    sheet.getRange(row,finalMatchCol+3).setFormulaR1C1('=iferror(if(sum(arrayformula(if(isblank(R2C5:R2C'+(finalMatchCol+1)+'),1,0)))>0,,match(R[0]C1,filter(filter(R3C1:R'+(totalMembers+2)+'C1,R3C2:R'+(totalMembers+2)+'C2=max(R3C2:R'+(totalMembers+2)+'C2)),filter(R3C[-1]:R'+(totalMembers+2)+'C[-1],R3C2:R'+(totalMembers+2)+'C2=max(R3C2:R'+(totalMembers+2)+'C2))=min(filter(R3C[-1]:R'+(totalMembers+2)+'C[-1],R3C2:R'+(totalMembers+2)+'C2=max(R3C2:R'+(totalMembers+2)+'C2)))),0)^0))');
-    // Formula to determine MNF win status sum (can be more than 1 for rare weeks)
-    if ( mnfInclude == true && mnf == true ) {
-      sheet.getRange(row,mnfCol).setFormulaR1C1('=iferror(if(and(counta(R2C'+firstMatchCol+':R2C'+finalMatchCol+')>0,counta(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')>0),if(mmult(arrayformula(if(R2C'+mnfStartCol+':R2C'+mnfEndCol+'=R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+')),1,0))))=0,0,mmult(arrayformula(if(R2C'+mnfStartCol+':R2C'+mnfEndCol+'=R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+')),1,0))))),),)');
-    }
-    // Formula to generate array of similar pickers on the week
-    sheet.getRange(row,diffCol).setFormulaR1C1('=iferror(if(isblank(R[0]C5),,transpose(arrayformula({query({R3C1:R'+(totalMembers+2)+'C1,arrayformula(mmult(if(R3C5:R'+(totalMembers+2)+'C'+(finalMatchCol)+'=R[0]C5:R[0]C'+(finalMatchCol)+',1,0),transpose(arrayformula(column(R[0]C5:R[0]C'+(finalMatchCol)+')\^0))))},\"select Col1 where Col1 \<\> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+
-      '\")\&\" [\"\&arrayformula('+(finalMatchCol-2)+'-query({R3C1:R'+(totalMembers+2)+'C1,arrayformula(mmult(if(R3C5:R'+(totalMembers+2)+'C'+(finalMatchCol)+'=R[0]C5:R[0]C'+(finalMatchCol)+',1,0),transpose(arrayformula(column(R[0]C5:R[0]C'+(finalMatchCol)+')\^0))))},\"select Col2 where Col1 <> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+'\"))-2\&\"]\"}))))');
-  }
-
-  sheet.getRange(rows,1,1,maxCols).setBackground('#dbdbdb');
-  sheet.getRange(rows,2).setBackground('#fffee3');
-  sheet.getRange(rows,3).setBackground('#e3fffe'); 
-  let cellsPopulatedCheck;
-  for (let row = 5; row <= finalMatchCol; row++ ) {
-    if (totalMembers >= 3) { // adjusts an if statement conditional for varying amounts of members
-      cellsPopulatedCheck = 'or(not(isblank(R3C[0])),not(isblank(R4C[0])),not(isblank(R5C[0])))';
-    } else if (totalMembers == 2){
-      cellsPopulatedCheck = 'or(not(isblank(R3C[0])),not(isblank(R4C[0])))';
-    } else if (totalMembers == 1) {
-      cellsPopulatedCheck = 'not(isblank(R3C[0]))';
-    }
-    sheet.getRange(rows,row).setFormulaR1C1('=iferror(if(counta(R3C[0]:R[-1]C[0])>0,if(countif(R3C[0]:R'+(totalMembers+2)+'C[0],regexextract(R1C[0],"[A-Z]{2,3}"))=counta(R3C[0]:R'+(totalMembers+2)+'C[0])/2,"SPLIT",if(countif(R3C[0]:R'+(totalMembers+2)+'C[0],regexextract(R1C[0],"[A-Z]{2,3}"))<counta(R3C[0]:R'+(totalMembers+2)+'C[0])/2,regexextract(right(R1C[0],3),"[A-Z]{2,3}")&"|"&round(100*countif(R3C[0]:R'+(totalMembers+2)+'C[0],regexextract(right(R1C[0],3),"[A-Z]{2,3}"))/counta(R3C[0]:R'+(totalMembers+2)+'C[0]),1)&"%",regexextract(R1C[0],"[A-Z]{2,3}")&"|"&round(100*countif(R3C[0]:R'+(totalMembers+2)+'C[0],regexextract(R1C[0],"[A-Z]{2,3}"))/counta(R3C[0]:R'+(totalMembers+2)+'C[0]),1)&"%")),))');
-  }
-  sheet.getRange(rows,diffCol).setFormulaR1C1('=iferror(if(isblank(R[0]C5),,transpose(query({arrayformula(R3C1:R'+(totalMembers+2)+'C1&\" [\"&(counta(R1C5:R1C'+finalMatchCol+')-mmult(arrayformula(if(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+'=arrayformula(regexextract(R'+(totalMembers+3)+'C5:R'+(totalMembers+3)+'C'+finalMatchCol+',\"[A-Z]+\")),1,0)),transpose(arrayformula(if(arrayformula(len(R1C5:R1C'+finalMatchCol+'))>1,1,1)))))&\"]\"),mmult(arrayformula(if(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+'=arrayformula(regexextract(R'+(totalMembers+3)+'C5:R'+(totalMembers+3)+'C'+finalMatchCol+',\"[A-Z]+\")),1,0)),transpose(arrayformula(if(arrayformula(len(R1C5:R1C'+finalMatchCol+'))>1,1,1))))},\"select Col1 order by Col2 desc, Col1 desc limit '+diffCount+'\"))))');
+  // Create named ranges
+  ss.setNamedRange('NFL_'+year+'_'+week,sheet.getRange(matchRow,firstMatchCol,1,matches));
+  ss.setNamedRange('NFL_'+year+'_PICKEM_OUTCOMES_'+week,sheet.getRange(outcomeRow,firstMatchCol,1,matches));
+  ss.setNamedRange('NFL_'+year+'_BONUS_'+week,sheet.getRange(bonusRow,firstMatchCol,1,matches));
+  ss.setNamedRange('NFL_'+year+'_PICKS_'+week,sheet.getRange(entryRowStart,firstMatchCol,totalMembers,matches));
   
- // AWAY TEAM BIAS FORMULA 
-  sheet.getRange(rows,2,1,1).setFormulaR1C1('=iferror(if(counta(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+')>10,"AWAY|"&round(100*(sum(arrayformula(if(regexextract(R1C5:R1C'+finalMatchCol+',"^[A-Z]{2,3}")=R1C5:R'+(totalMembers+2)+'C'+finalMatchCol+',1,0)))/counta(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+')),1)&"%","AWAY"),"AWAY")');
+  if (tnfInclude && tnf) {
+    ss.setNamedRange('NFL_'+year+'_THURS_PICKS_'+week,sheet.getRange(entryRowStart,tnfStartCol,totalMembers,tnfEndCol-tnfStartCol+1));
+  }
+  if (mnfInclude && mnf) {
+    ss.setNamedRange('NFL_'+year+'_MNF_'+week,sheet.getRange(entryRowStart,mnfStartCol,totalMembers,mnfEndCol-(mnfStartCol-1)));
+  }
+  if (tiebreaker) {
+    ss.setNamedRange('NFL_'+year+'_TIEBREAKER_'+week,sheet.getRange(entryRowStart,tiebreakerCol,totalMembers,1));
+    let validRule = SpreadsheetApp.newDataValidation().requireNumberBetween(0,120)
+      .setHelpText('Must be a number')
+      .build();
+    sheet.getRange(outcomeRow,tiebreakerCol).setDataValidation(validRule);
+  }
+  if (commentInclude) {
+    ss.setNamedRange('COMMENTS_'+year+'_'+week,sheet.getRange(entryRowStart,commentCol,totalMembers,1));
+  }
+
+  for (let row = entryRowStart; row <= entryRowEnd; row++ ) {
+    // Formula to determine how many correct on the week
+    sheet.getRange(row,1,1,maxCols).setBorder(null,null,true,null,false,false,'#AAAAAA',SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+
+    sheet.getRange(row,pointsCol).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,counta(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')>0),sum(arrayformula(if(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'=R'+row+'C'+firstMatchCol+':R'+row+'C'+finalMatchCol+'=true,1,0)*R'+bonusRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol+')),))');
+
+    // sheet.getRange(row,2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C['+finalMatchCol+'])>0,counta(R[0]C[3]:R[0]C['+finalMatchCol+'])>0),mmult(arrayformula(if(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'=R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')),1,0)))),))');
+    
+    // Formula to determine weekly rank
+    sheet.getRange(row,pointsCol+1).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),rank(R[0]C'+pointsCol+',R'+entryRowStart+'C2:R'+entryRowEnd+'C2,false),))');
+    // Formula to determine weekly correct percent
+    sheet.getRange(row,pointsCol+2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),sum(filter(arrayformula(if(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'=R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+',1,0)),counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')))/counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'),),)');
+    
+    // Formula to determine difference of tiebreaker from final MNF score
+    if (tiebreaker) {
+      sheet.getRange(row,tiebreakerCol+1).setFormulaR1C1('=iferror(if(or(isblank(R[0]C[-1]),isblank(R'+outcomeRow+'C'+tiebreakerCol+')),,abs(R[0]C[-1]-R'+outcomeRow+'C'+tiebreakerCol+')))');
+      // Formula to denote winner with a '1' if a clear winner exists
+      sheet.getRange(row,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),arrayformula(if(countif(array_constrain({R[0]C'+pointsCol+',R[0]C'+(tiebreakerCol+1)+'}=filter(filter({R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+',R'+entryRowStart+'C'+(tiebreakerCol+1)+':R'+entryRowEnd+'C'+(tiebreakerCol+1)+'},R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'=max(R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+')),filter(R'+entryRowStart+'C'+(tiebreakerCol+1)+':R'+entryRowEnd+'C'+(tiebreakerCol+1)+',R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'=max(R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'))=min(filter(R'+entryRowStart+'C'+(tiebreakerCol+1)+':R'+entryRowEnd+'C'+(tiebreakerCol+1)+',R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'=max(R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+')))),1,2),true)=2,1,0))),)');
+    } else {
+      // Formula to denote winner with a '1', with a tiebreaker allowed
+      sheet.getRange(row,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),if(rank(R'+row+'C'+pointsCol+',R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+',false)=1,1,0)),)');
+    }
+
+    // Formula to determine MNF win status sum (can be more than 1 for rare weeks)
+    if (mnfInclude && mnf) {
+      sheet.getRange(row,mnfCol).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,counta(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')>0),if(mmult(arrayformula(if(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+'=R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+')),1,0))))=0,0,mmult(arrayformula(if(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+'=R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+')),1,0))))),),)');
+    }
+
+    // Formula to generate array of similar pickers on the week
+    sheet.getRange(row,diffCol).setFormulaR1C1('=iferror(if(isblank(R[0]C'+firstMatchCol+'),,transpose(arrayformula({arrayformula('+matches+'-query({R'+entryRowStart+'C1:R'+entryRowEnd+'C1,arrayformula(mmult(if(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+(finalMatchCol)+'=R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+',1,0),transpose(arrayformula(column(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')\^0))))},\"select Col2 where Col1 <> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+'\"))&\": \"&query({R'+entryRowStart+'C1:R'+entryRowEnd+'C1,arrayformula(mmult(if(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+'=R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+',1,0),transpose(arrayformula(column(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')\^0))))},\"select Col1 where Col1 \<\> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+
+      '\")}))))');
+  }
+
+  // Sets the formula for home / away split for each matchup column
+  for (let col = firstMatchCol; col <= finalMatchCol; col++ ) {
+    sheet.getRange(summaryRow,col).setFormulaR1C1('=iferror(if(counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])>0,if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(R'+matchRow+'C[0],"[A-Z]{2,3}"))=counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])/2,\"SPLIT\"&char(10)&\"50%\",if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(R'+matchRow+'C[0],\"[A-Z]{2,3}\"))<counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])/2,regexextract(right(R'+matchRow+'C[0],3),\"[A-Z]{2,3}\")&char(10)&round(100*countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(right(R'+matchRow+'C[0],3),\"[A-Z]{2,3}\"))/counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1)&\"%\",regexextract(R'+matchRow+'C[0],\"[A-Z]{2,3}\")&char(10)&round(100*countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(R'+matchRow+'C[0],\"[A-Z]{2,3}\"))/counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1)&\"%\")),))');
+  }
+  
+  if (tiebreaker) {
+    sheet.getRange(matchRow,winCol).setFormulaR1C1('=if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)>1,\"TIE\",\"WIN\")');
+    sheet.getRange(summaryRow,winCol).setFormulaR1C1('=iferror(if(not(isblank(R'+summaryRow+'C'+tiebreakerCol+')),if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)>1,countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)&\"\-WAY\"&char(10)&\"TIE\",),),)');
+    sheet.getRange(summaryRow,tiebreakerCol).setFormulaR1C1('=iferror(if(sum(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])>0,\"AVG\"&char(10)&round(average(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1),),)');
+    sheet.getRange(summaryRow,tiebreakerCol+1).setFormulaR1C1('=iferror(if(sum(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])>0,\"AVG\"&char(10)&round(average(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1),),)');
+  } else {
+    sheet.getRange(summaryRow,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)>1,countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)&\"\-WAY\"&char(10)&\"TIE\",\"DONE\"),),)');
+    sheet.getRange(matchRow,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)=0,\"TIE\",\"WIN\"),\"WIN\"),)');
+  }
+
+  if (mnfInclude && mnf) {
+    sheet.getRange(summaryRow,mnfCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+')=columns(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+'),\"MNF\"\&char(10)&(round(sum(mmult(arrayformula(if(R'+entryRowStart+'C'+mnfStartCol+':R'+entryRowEnd+'C'+mnfEndCol+'=R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+')),1,0)))))/counta(R'+entryRowStart+'C'+mnfStartCol+':R'+entryRowEnd+'C'+mnfEndCol+'),3)*100)\&\"\%\",),)');
+  }
+
+  sheet.getRange(matchRow,pointsCol).setFormulaR1C1('=iferror(if(countif(R'+bonusRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol+',\">1\")>0,\"TOTAL\"&char(10)&\"POINTS\",\"TOTAL\"&char(10)&\"CORRECT\"),)');
+
+  sheet.getRange(summaryRow,pointsCol).setFormulaR1C1('=iferror(if(sum(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])>0,\"AVG\"\&char(10)&(round(average(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1)),),)');
+
+  sheet.getRange(summaryRow,diffCol).setFormulaR1C1('=iferror(if(isblank(R[0]C'+firstMatchCol+'),,transpose(query({arrayformula((counta(R'+matchRow+'C'+firstMatchCol+':R'+matchRow+'C'+finalMatchCol+')-mmult(arrayformula(if(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+'=arrayformula(regexextract(R'+(totalMembers+3)+'C'+firstMatchCol+':R'+(totalMembers+3)+'C'+finalMatchCol+',\"[A-Z]+\")),1,0)),transpose(arrayformula(if(arrayformula(len(R'+matchRow+'C'+firstMatchCol+':R'+matchRow+'C'+finalMatchCol+'))>1,1,1)))))&\": \"\&'+'R'+entryRowStart+'C1:R'+entryRowEnd+'C1),mmult(arrayformula(if(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+'=arrayformula(regexextract(R'+(totalMembers+3)+'C'+firstMatchCol+':R'+(totalMembers+3)+'C'+finalMatchCol+',\"[A-Z]+\")),1,0)),transpose(arrayformula(if(arrayformula(len(R'+matchRow+'C'+firstMatchCol+':R'+matchRow+'C'+finalMatchCol+'))>1,1,1))))},\"select Col1 order by Col2 desc, Col1 desc limit '+diffCount+'\"))))');
+
+  // AWAY TEAM BIAS FORMULA 
+  sheet.getRange(summaryRow,2,1,1).setFormulaR1C1('=iferror(if(counta(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+')>10,"AWAY"&char(10)&round(100*(sum(arrayformula(if(regexextract(R'+matchRow+'C'+firstMatchCol+':R'+matchRow+'C'+finalMatchCol+',"^[A-Z]{2,3}")=R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+',1,0)))/counta(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+')),1)&"%","AWAY"),"AWAY")');
   // HOME TEAM BIAS FORMULA
-  sheet.getRange(rows,3,1,1).setFormulaR1C1('=iferror(if(counta(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+')>10,"HOME|"&round(100*(sum(arrayformula(if(regexextract(R1C5:R1C'+finalMatchCol+',"[A-Z]{2,3}$")=R1C5:R'+(totalMembers+2)+'C'+finalMatchCol+',1,0)))/counta(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+')),1)&"%","HOME"),"HOME")');
-  sheet.getRange(rows,4,1,1).setFormulaR1C1('=iferror(if(counta(R2C[1]:R2C['+(finalMatchCol-4)+'])>2,average(R2C[0]:R'+(totalMembers+2)+'C[0]),))');
-
-  // ALTERNATING COLORS / BANDING
-  let range = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn());
-  range.getBandings().forEach(banding => banding.remove());
-
-  sheet.getRange(3,1,totalMembers,finalCol).applyRowBanding(SpreadsheetApp.BandingTheme)
-    .setHeaderRowColor(null)
-    .setSecondColumnColor('#F0F0F0');
+  sheet.getRange(summaryRow,3,1,1).setFormulaR1C1('=iferror(if(counta(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+')>10,"HOME"&char(10)&round(100*(sum(arrayformula(if(regexextract(R'+matchRow+'C'+firstMatchCol+':R'+matchRow+'C'+finalMatchCol+',"[A-Z]{2,3}$")=R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+',1,0)))/counta(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+')),1)&"%","HOME"),"HOME")');
+  sheet.getRange(summaryRow,4,1,1).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>2,average(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),))');
 
   // Setting conditional formatting rules
+  let bonusCount = 3;
+  let parity = ['iseven','isodd'];
+  let formatObj = [{'name':'correct_pick_even','color_start':'#c9ffdf','color_end':'#69ffa6','formula':'=and(indirect(\"R'+outcomeRow+'C[0]\",false)=indirect(\"R[0]C[0]\",false),not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false))),'+parity[0]+'(row(indirect(\"R[0]C1\",false))))'},
+                {'name':'correct_pick_odd','color_start':'#a0fdba','color_end':'#73ff9b','formula':'=and(indirect(\"R'+outcomeRow+'C[0]\",false)=indirect(\"R[0]C[0]\",false),not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false))),'+parity[1]+'(row(indirect(\"R[0]C1\",false))))'},
+                {'name':'incorrect_pick_even','color_start':'#FFF7F9','color_end':'#FCD4DC','formula':'=and(not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false))),'+parity[0]+'(row(indirect(\"R[0]C1\",false))))'},
+                {'name':'incorrect_pick_odd','color_start':'#FFF2F4','color_end':'#FFC3CC','formula':'=and(not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false))),'+parity[1]+'(row(indirect(\"R[0]C1\",false))))'},
+                {'name':'home_pick_even','color_start':'#e3fffe','color_end':'#9ef2ee','formula':'=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),arrayformula(trim(split(indirect(\"R'+matchRow+'C[0]\",false),\"\@\"))),0)=2,'+parity[0]+'(row(indirect(\"R[0]C1\",false))))'},
+                {'name':'home_pick_odd','color_start':'#d0f5f3','color_end':'#80f1ea', 'formula':'=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),arrayformula(trim(split(indirect(\"R'+matchRow+'C[0]\",false),\"\@\"))),0)=2,'+parity[1]+'(row(indirect(\"R[0]C1\",false))))'},
+                {'name':'away_pick_even','color_start':'#fffee3','color_end':'#fdf9a2','formula':'=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),arrayformula(trim(split(indirect(\"R'+matchRow+'C[0]\",false),\"\@\"))),0)=1,'+parity[0]+'(row(indirect(\"R[0]C1\",false))))'},
+                {'name':'away_pick_odd','color_start':'#faf9e1','color_end':'#fbf77f','formula':'=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),arrayformula(trim(split(indirect(\"R'+matchRow+'C[0]\",false),\"\@\"))),0)=1,'+parity[1]+'(row(indirect(\"R[0]C1\",false))))'}];
+
   sheet.clearConditionalFormatRules();    
-  range = sheet.getRange('R3C5:R'+(rows-1)+'C'+finalMatchCol);
-  // CORRECT PICK COLOR RULE
-  let formatRuleCorrectEven = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(indirect(\"R2C[0]\",false)=indirect(\"R[0]C[0]\",false),not(isblank(indirect(\"R2C[0]\",false))),iseven(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#c9ffdf')
-    .setRanges([range])
-    .build();
-  let formatRuleCorrectOdd = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(indirect(\"R2C[0]\",false)=indirect(\"R[0]C[0]\",false),not(isblank(indirect(\"R2C[0]\",false))),isodd(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#bbedd0')
-    .setRanges([range])
-    .build();
-  // INCORRECT PICK COLOR RULE
-  let formatRuleIncorrectEven = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(not(indirect(\"R2C[0]\",false)=indirect(\"R[0]C[0]\",false)),not(isblank(indirect(\"R2C[0]\",false))),iseven(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#ffc4ca')
-    .setStrikethrough(true)
-    .setRanges([range])
-    .build();
-  let formatRuleIncorrectOdd = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(not(indirect(\"R2C[0]\",false)=indirect(\"R[0]C[0]\",false)),not(isblank(indirect(\"R2C[0]\",false))),isodd(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#f2bdc2')
-    .setStrikethrough(true)
-    .setRanges([range])
-    .build();
-  // HOME PICK COLOR RULE
-  let formatRuleHomeEven = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),split(indirect(\"R1C[0]\",false),\"\@\"),0)=2,iseven(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#e3fffe')
-    .setRanges([range])
-    .build();
-  let formatRuleHomeOdd = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),split(indirect(\"R1C[0]\",false),\"\@\"),0)=2,isodd(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#d0f5f3')
-    .setRanges([range])
-    .build();
-  // AWAY PICK COLOR RULE
-  let formatRuleAwayEven = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),split(indirect(\"R1C[0]\",false),\"\@\"),0)=1,iseven(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#fffee3')
-    .setRanges([range])
-    .build();
-  let formatRuleAwayOdd = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(not(isblank(indirect(\"R[0]C[0]\",false))),match(indirect(\"R[0]C[0]\",false),split(indirect(\"R1C[0]\",false),\"\@\"),0)=1,isodd(row(indirect(\"R[0]C1\",false))))')
-    .setBackground('#faf9e1')
-    .setRanges([range])
-    .build();  
-  
+  let range = sheet.getRange('R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol);
+  Object.keys(formatObj).forEach(a => {
+    let gradient = hexGradient(formatObj[a]['color_start'],formatObj[a]['color_end'],bonusCount);
+    for (let b = gradient.length-1; b >= 0; b--) {
+      let formula = formatObj[a]['formula'];
+      if (b > 0) {
+        // Appends the number bonus amount to the conditional formatting to pair with the gradient value assigned
+        formula = formula.substring(0,formula.length-1).concat(',indirect(\"R'+bonusRow+'C[0]\",false)='+(b+1)+')');
+      }
+      let rule = SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied(formula)
+        .setBackground(gradient[b])
+        .setRanges([range]);
+      if (formatObj[a]['name'].includes('incorrect')) {
+        rule.setFontColor('#999999'); // Dark gray text for the incorrect picks
+      }
+      rule.build();
+      
+      formatRules.push(rule);
+    }
+  });
+
   // NAMES COLUMN NAMED RANGE
-  range = sheet.getRange('R3C1:R'+(rows-1)+'C1');
+  range = sheet.getRange('R'+entryRowStart+'C1:R'+entryRowEnd+'C1');
   ss.setNamedRange('NAMES_'+year+'_'+week,range);
 
   // TOTALS GRADIENT RULE
-  range = sheet.getRange('R3C2:R'+(rows-1)+'C2');
+  range = sheet.getRange('R'+entryRowStart+'C2:R'+entryRowEnd+'C2');
   ss.setNamedRange('TOT_'+year+'_'+week,range);
   let formatRuleTotals = SpreadsheetApp.newConditionalFormatRule()
     .setGradientMaxpoint("#75F0A1")
@@ -2157,8 +2401,9 @@ function weeklySheet(year,week,members,dataRestore) {
     //.setGradientMinpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, 0 + 3) // Min value of all correct picks (adjusted by 3 to tighten color range)
     .setRanges([range])
     .build();
+  formatRules.push(formatRuleTotals);
   // RANKS GRADIENT RULE
-  range = sheet.getRange('R3C3:R'+(rows-1)+'C3');
+  range = sheet.getRange('R'+entryRowStart+'C3:R'+entryRowEnd+'C3');
   ss.setNamedRange('RANK_'+year+'_'+week,range);
   let formatRuleRanks = SpreadsheetApp.newConditionalFormatRule()
     .setGradientMaxpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, members.length)
@@ -2166,8 +2411,9 @@ function weeklySheet(year,week,members,dataRestore) {
     .setGradientMinpointWithValue("#5EDCFF", SpreadsheetApp.InterpolationType.NUMBER, 1)
     .setRanges([range])
     .build();
+  formatRules.push(formatRuleRanks);
   // PERCENT GRADIENT RULE
-  range = sheet.getRange('R3C4:R'+(rows)+'C4');
+  range = sheet.getRange('R'+entryRowStart+'C4:R'+(rows)+'C4');
   range.setNumberFormat('##0.0%');
   let formatRulePercent = SpreadsheetApp.newConditionalFormatRule()
     .setGradientMaxpointWithValue("#75F0A1", SpreadsheetApp.InterpolationType.NUMBER, ".70")
@@ -2175,10 +2421,21 @@ function weeklySheet(year,week,members,dataRestore) {
     .setGradientMinpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, ".50")
     .setRanges([range])
     .build();
-  ss.setNamedRange('PCT_'+year+'_'+week,sheet.getRange('R3C4:R'+(rows-1)+'C4'));    
-  
+  formatRules.push(formatRulePercent);
+  ss.setNamedRange('PCT_'+year+'_'+week,sheet.getRange('R'+entryRowStart+'C4:R'+entryRowEnd+'C4'));    
+  // POINTS GRADIENT RULE
+  range = sheet.getRange('R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol);
+  let formatRulePoints = SpreadsheetApp.newConditionalFormatRule()
+    .setGradientMaxpointWithValue("#5EDCFF", SpreadsheetApp.InterpolationType.NUMBER, '=max(indirect(\"R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]\",false))')
+    .setGradientMidpointWithValue("#FFFFFF", SpreadsheetApp.InterpolationType.NUMBER, '=average(indirect(\"R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]\",false))')
+    .setGradientMinpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, '=min(indirect(\"R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]\",false))')
+    .setRanges([range])
+    .build();
+  formatRules.push(formatRulePoints);
+
+
   // WINNER COLUMN RULE
-  range = sheet.getRange('R3C'+(finalMatchCol+3)+':R'+(rows-1)+'C'+(finalMatchCol+3));
+  range = sheet.getRange('R'+entryRowStart+'C'+winCol+':R'+entryRowEnd+'C'+winCol);
   ss.setNamedRange('WIN_'+year+'_'+week,range);
   let formatRuleNotWinner = SpreadsheetApp.newConditionalFormatRule()
     .whenNumberNotEqualTo(1)
@@ -2186,215 +2443,461 @@ function weeklySheet(year,week,members,dataRestore) {
     .setFontColor('#FFFFFF')
     .setRanges([range])
     .build();     
+  formatRules.push(formatRuleNotWinner);
   let formatRuleWinner = SpreadsheetApp.newConditionalFormatRule()
     .whenNumberEqualTo(1)
     .setBackground('#75F0A1')
     .setFontColor('#75F0A1')
     .setRanges([range])
     .build();
-  
+  formatRules.push(formatRuleWinner);  
   // WINNER NAME RULE
-  range = sheet.getRange('R3C1:R'+rows+'C1');
+  range = sheet.getRange('R'+entryRowStart+'C1:R'+entryRowEnd+'C1');
   let formatRuleWinnerName = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=indirect(\"R[0]C'+(finalMatchCol+3)+'\",false)=1')
+    .whenFormulaSatisfied('=indirect(\"R[0]C'+winCol+'\",false)=1')
     .setBackground('#75F0A1')
     .setRanges([range])
-    .build();  
-  
+    .build();
+  formatRules.push(formatRuleWinnerName);
 
   // MNF GRADIENT RULE
   let formatRuleMNFEmpty, formatRuleMNF;
-  if (mnfInclude == true && mnf == true) {
-    range = sheet.getRange('R3C'+(finalMatchCol+4)+':R'+(rows-1)+'C'+(finalMatchCol+4));
+  if (mnfInclude && mnf) {
+    range = sheet.getRange('R'+entryRowStart+'C'+mnfCol+':R'+entryRowEnd+'C'+mnfCol);
     ss.setNamedRange('MNF_'+year+'_'+week,range);
     formatRuleMNFEmpty = SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied('=isblank(indirect("R[0]C[0]",false))')
+      .whenFormulaSatisfied('=or(isblank(indirect("R[0]C[0]",false)),indirect("R[0]C[0]",false)=0)')
       .setFontColor('#FFFFFF')
       .setBackground('#FFFFFF')
       .setRanges([range])
       .build();
-    formatRuleMNF = SpreadsheetApp.newConditionalFormatRule()
-      .setGradientMaxpoint("#C2FF7D") // Max value of all correct picks, min 1
-      .setGradientMinpoint("#FFFFFF") // Min value of all correct picks  
-      .setRanges([range])
-      .build();
-  }
-  
-  range = sheet.getRange(3,diffCol,totalMembers+1,diffCount);
-  let formatCommonPicker0 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))=0')
-    .setBackground('#46f081')
-    .setRanges([range])
-    .build();
-  let formatCommonPicker1 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))=1')
-    .setBackground('#75F0A1')
-    .setRanges([range])
-    .build();
-  let formatCommonPicker2 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))=2')
-    .setBackground('#a4edbe')
-    .setRanges([range])
-    .build();
-  let formatCommonPicker3 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))=3')
-    .setBackground('#e4f0e8')
-    .setRanges([range])
-    .build();
-  
-  // DIFFERENCE TIEBREAKER COLUMN FORMATTING
-  range = sheet.getRange(3,finalMatchCol+2,totalMembers,1);
-  let formatRuleDiff = SpreadsheetApp.newConditionalFormatRule()
-    .setGradientMaxpoint("#FFFFFF")
-    .setGradientMinpoint("#5EDCFF")
-    .setRanges([range])
-    .build();
-  
-  // PREFERENCE COLOR SCHEMES
-  range = sheet.getRange(rows,4,1,finalMatchCol-3);
-  // Away Favored 90%
-  let formatRuleAway90 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(indirect(\"R1C[0]\",false),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=90)')
-    .setBackground('#fffb7d')
-    .setRanges([range])
-    .build();
-  // Home Favored 90%
-  let formatRuleHome90 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(right(indirect(\"R1C[0]\",false),3),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=90)')
-    .setBackground('#7dfffb')
-    .setRanges([range])
-    .build();
-  // Away favored 80%
-  let formatRuleAway80 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(indirect(\"R1C[0]\",false),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=80)')
-    .setBackground('#fffc96')
-    .setRanges([range])
-    .build();
-  // Home Favored 80%
-  let formatRuleHome80 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(right(indirect(\"R1C[0]\",false),3),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=80)')
-    .setBackground('#96fffc')
-    .setRanges([range])
-    .build();
-  // Away Favored 70%
-  let formatRuleAway70 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(indirect(\"R1C[0]\",false),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=70)')
-    .setBackground('#fffcb0')
-    .setRanges([range])
-    .build();
-  // Home Favored 70%
-  let formatRuleHome70 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(right(indirect(\"R1C[0]\",false),3),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=70)')
-    .setBackground('#b0fffc')
-    .setRanges([range])
-    .build();
-  // Away Favored 60%
-  let formatRuleAway60 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(indirect(\"R1C[0]\",false),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=60)')
-    .setBackground('#fffdc9')
-    .setRanges([range])
-    .build();
-  // Home Favored 60%
-  let formatRuleHome60 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(right(indirect(\"R1C[0]\",false),3),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=60)')
-    .setBackground('#c9fffd')
-    .setRanges([range])
-    .build();
-  // Away Favored
-  let formatRuleAway50 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(indirect(\"R1C[0]\",false),\"[A-Z]{2,3}\")')
-    .setBackground('#fffee3')
-    .setRanges([range])
-    .build();
-  // Home Favored
-  let formatRuleHome50 = SpreadsheetApp.newConditionalFormatRule()
-    .whenFormulaSatisfied('=regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(right(indirect(\"R1C[0]\",false),3),\"[A-Z]{2,3}\")')
-    .setBackground('#e3fffe')
-    .setRanges([range])
-    .build();
-
-  let formatRules = sheet.getConditionalFormatRules();
-  formatRules.push(formatRuleCorrectEven);
-  formatRules.push(formatRuleCorrectOdd);
-  formatRules.push(formatRuleIncorrectEven);
-  formatRules.push(formatRuleIncorrectOdd);
-  formatRules.push(formatRuleHomeEven);
-  formatRules.push(formatRuleHomeOdd);
-  formatRules.push(formatRuleAwayEven);
-  formatRules.push(formatRuleAwayOdd);
-  formatRules.push(formatRuleTotals);
-  formatRules.push(formatRuleRanks);
-  formatRules.push(formatRulePercent);
-  formatRules.push(formatRuleNotWinner);
-  formatRules.push(formatRuleWinner);
-  formatRules.push(formatRuleWinnerName);
-  if (mnfInclude == true && mnf == true) {
-    formatRules.push(formatRuleMNFEmpty);
+    formatRules.push(formatRuleMNFEmpty);      
+    if (mnfStartCol != mnfEndCol) { // Rules for when there are multiple MNF games
+      formatRuleMNF = SpreadsheetApp.newConditionalFormatRule()
+        .setGradientMaxpoint("#FFF624") // Max value of all correct picks, min 1
+        .setGradientMinpoint("#FFFFFF") // Min value of all correct picks  
+        .setRanges([range])
+        .build();
+    } else { // Rules for single MNF game 
+      formatRuleMNF = SpreadsheetApp.newConditionalFormatRule()
+        .setBackground("#FFF624")
+        .setFontColor("#FFF624")
+        .whenNumberEqualTo(1)
+        .setRanges([range])
+        .build();
+    }
     formatRules.push(formatRuleMNF);
   }
-  formatRules.push(formatRuleDiff);
-  formatRules.push(formatRuleHome90);
-  formatRules.push(formatRuleAway90);
-  formatRules.push(formatRuleHome80);
-  formatRules.push(formatRuleAway80);
-  formatRules.push(formatRuleHome70);
-  formatRules.push(formatRuleAway70);
-  formatRules.push(formatRuleHome60);
-  formatRules.push(formatRuleAway60);
-  formatRules.push(formatRuleHome50);
-  formatRules.push(formatRuleAway50);
-  formatRules.push(formatCommonPicker0);
-  formatRules.push(formatCommonPicker1);
-  formatRules.push(formatCommonPicker2);
-  formatRules.push(formatCommonPicker3);
+ 
+  // DIFFERENCE TIEBREAKER COLUMN FORMATTING
+  if (tiebreaker) {
+    let offsets = [1,3,5,10,15,20,20];
+    let offsetColors = hexGradient('#33FF7A','#FFFFFF',offsets.length);
+    for (let a = 0; a < offsets.length; a++) {
+      let rule;
+      if (a < (offsets.length - 1)) {
+        rule = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormulaSatisfied('=if(not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false))),abs(indirect(\"R[0]C[0]\",false)-indirect(\"R'+outcomeRow+'C[0]:R'+outcomeRow+'C[0]\",false))<='+offsets[a]+',)')
+          .setBackground(offsetColors[a])
+          .setRanges([sheet.getRange(entryRowStart,tiebreakerCol,totalMembers,1)])
+          .build();
+      } else {
+        rule = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormulaSatisfied('=if(not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false))),abs(indirect(\"R[0]C[0]\",false)-indirect(\"R'+outcomeRow+'C[0]:R'+outcomeRow+'C[0]\",false))>'+offsets[a]+',)')
+          .setBackground(offsetColors[a])
+          .setRanges([sheet.getRange(entryRowStart,tiebreakerCol,totalMembers,1)])
+          .build();        
+      }
+      formatRules.push(rule);
+      rule = SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied('=if(not(isblank(indirect(\"R'+outcomeRow+'C[0]\",false))),abs(value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))-indirect(\"R'+outcomeRow+'C[0]:R'+outcomeRow+'C[0]\",false))<='+offsets[a]+',)')
+        .setBackground(offsetColors[a])
+        .setRanges([sheet.getRange(summaryRow,tiebreakerCol)])
+        .build();
+      formatRules.push(rule);
+    }
+    offsetColors = hexGradient('#FFFFFF','#666666',offsets.length);
+    for (let a = 0; a < offsets.length; a++) {
+      let rule;
+      let ruleOffsets;
+      if (a < (offsets.length - 1)) {
+        rule = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormulaSatisfied('=if(not(isblank(indirect(\"R'+outcomeRow+'C[-1]\",false))),indirect(\"R[0]C[0]\",false)<='+offsets[a]+',)')
+          .setBackground(offsetColors[a])
+          .setRanges([sheet.getRange(entryRowStart,tiebreakerCol+1,totalMembers,1)])
+          .build();
+        ruleOffsets = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormulaSatisfied('=if(not(isblank(indirect(\"R'+outcomeRow+'C[-1]\",false))),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))<='+offsets[a]+',)')
+          .setBackground(offsetColors[a])
+          .setRanges([sheet.getRange(summaryRow,tiebreakerCol+1)])
+          .build();
+      } else {
+        rule = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormulaSatisfied('=if(not(isblank(indirect(\"R'+outcomeRow+'C[-1]\",false))),indirect(\"R[0]C[0]\",false)>'+offsets[a]+',)')
+          .setBackground(offsetColors[a])
+          .setRanges([sheet.getRange(entryRowStart,tiebreakerCol+1,totalMembers,1)])
+          .build();
+        ruleOffsets = SpreadsheetApp.newConditionalFormatRule()
+          .whenFormulaSatisfied('=if(not(isblank(indirect(\"R'+outcomeRow+'C[-1]\",false))),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))>'+offsets[a]+',)')
+          .setBackground(offsetColors[a])
+          .setRanges([sheet.getRange(summaryRow,tiebreakerCol+1)])
+          .build();              
+      }
+      formatRules.push(rule);
+      formatRules.push(ruleOffsets);
+    }
+    // ADD ADDITIONAL COLOR VARIATION BASED ON TIEBREAKER VALUE PRESENT HERE
+    let formatRuleTiebreakerEmptyAndDone = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied('=and(isblank(indirect(\"R[0]C[0]\",false)),counta(indirect(\"R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'\",false))>=columns(indirect(\"R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'\",false)))')
+      .setBackground("#FF3FC7")
+      .setRanges([sheet.getRange(outcomeRow,tiebreakerCol)])
+      .build();
+    formatRules.push(formatRuleTiebreakerEmptyAndDone);
+    let formatRuleTiebreakerEmpty = SpreadsheetApp.newConditionalFormatRule()
+      .whenCellEmpty()
+      .setBackground("#CCCCCC")
+      .setRanges([sheet.getRange(outcomeRow,tiebreakerCol)])
+      .build();
+    formatRules.push(formatRuleTiebreakerEmpty);
+    range = sheet.getRange(entryRowStart,tiebreakerCol,totalMembers,1);
+    let formatRuleDiff = SpreadsheetApp.newConditionalFormatRule()
+      .setGradientMaxpoint("#B7B7B7")
+      .setGradientMinpoint("#FFFFFF")
+      .setRanges([range])
+      .build();
+    formatRules.push(formatRuleDiff);
+  }
+
+  // PREFERENCE COLOR SCHEMES
+  let homeAwayPercents = [90,80,70,60,50];
+  let awayColors = ['#FFFB7D','#FFFC96','#FFFCB0','#FFFDC9','#FFFEE3'];
+  let homeColors = ['#7DFFFB','#96FFFC','#B0FFFC','#C9FFFD','#E3FFFE'];
+  let awayFormula = '=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(indirect(\"R'+matchRow+'C[0]\",false),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=%%)'; // Replaceable "%%" for inserting percent number
+  let homeFormula = '=and(regexextract(indirect(\"R[0]C[0]\",false),\"[A-Z]{2,3}\")=regexextract(right(indirect(\"R'+matchRow+'C[0]\",false),3),\"[A-Z]{2,3}\"),value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9\\.]+\"))>=%%)'; // Replaceable "%%" for inserting percent number
+  range = sheet.getRange(summaryRow,firstMatchCol,1,matches); // Summary row of matches
+  for (let a = 0; a < homeAwayPercents.length; a++) {
+    let formula = awayFormula.replace('%%',homeAwayPercents[a]);
+
+    let rule = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(formula)
+      .setBackground(awayColors[a])
+      .setRanges([range]);
+    rule.build();
+    formatRules.push(rule);
+
+    formula = homeFormula.replace('%%',homeAwayPercents[a]);
+    rule = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(formula)
+      .setBackground(homeColors[a])
+      .setRanges([range]);
+    rule.build();
+    formatRules.push(rule);    
+  }
+
+  // MATCHUP WEIGHTING RULE
+  let formatRuleWeightedThree, formatRuleWeightedTwo;
+  formatRuleWeightedThree = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=and(not(isblank(indirect(\"R[0]C[0]\",false))),or(and(indirect(\"R'+bonusRow+'C[0]\",false)=2,countif(indirect(\"R'+bonusRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol+'\",false),3)=0),indirect(\"R'+bonusRow+'C[0]\",false)=3))')
+    .setBackground('#9C9C97')
+    .setRanges([sheet.getRange('R'+matchRow+'C'+firstMatchCol+':R'+matchRow+'C'+finalMatchCol),sheet.getRange('R'+outcomeRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol)])
+    .build();
+  formatRules.push(formatRuleWeightedThree);
+  formatRuleWeightedTwo = SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=and(not(isblank(indirect(\"R[0]C[0]\",false))),indirect(\"R'+bonusRow+'C[0]\",false)=2)')
+    .setBackground('#949376')
+    .setRanges([sheet.getRange('R'+matchRow+'C'+firstMatchCol+':R'+matchRow+'C'+finalMatchCol),sheet.getRange('R'+outcomeRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol)])
+    .build();
+  formatRules.push(formatRuleWeightedTwo);
+  
+  // Format rules for difference columns to emphasize the most common picker
+  let commonPickersGradient = hexGradient('#46f081','#e4f0e8',8);
+  let commonPickersFormula = '=value(regexextract(indirect(\"R[0]C[0]\",false),\"[0-9]+\"))=%'; // Replaceable "%" for common picker number
+  range = sheet.getRange(entryRowStart,diffCol,totalMembers+1,diffCount);
+  for (let a = 0; a < commonPickersGradient.length; a++) {
+    let formula = commonPickersFormula.replace('%',a); // Replaces "%" with index of commonPickersGradient (0-X)
+    let rule = SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(formula)
+      .setBackground(commonPickersGradient[a])
+      .setRanges([range])
+      .build();
+    formatRules.push(rule);
+  }
+
+  // Sets all formerly pushed rules to the sheet
   sheet.setConditionalFormatRules(formatRules);
 
   // Setting size, alignment, frozen columns
   columns = sheet.getMaxColumns();
-  range = sheet.getRange(1,1,rows,columns);
-  range.setFontSize(10);
-  range.setVerticalAlignment('middle');
-  range.setHorizontalAlignment('center');
-  range.setFontFamily("Montserrat");
-  sheet.getRange(3,diffCol,totalMembers+1,diffCount).setHorizontalAlignment('left');
-  if (commentInclude == true) {
-    sheet.getRange(3,commentCol,totalMembers+1,1).setHorizontalAlignment('left');
-  }
-  range = sheet.getRange(1,1,rows,1);
-  range.setHorizontalAlignment('left');
-  sheet.setFrozenColumns(4);
-  sheet.setFrozenRows(2);
-  range = sheet.getRange(1,1,2,columns);
-  range.setBackground('black');
-  range.setFontColor('white');
+  sheet.getRange(1,1,rows,columns)
+    .setVerticalAlignment('middle')
+    .setHorizontalAlignment('center')
+    .setFontSize(10)
+    .setFontFamily("Montserrat");
 
-  try {
-    if (dataRestore == true && fresh == false) {
-      if (tiebreakerCol  >= 0) {
-        previousDataRange.setValues(previousData);
-        ss.toast('Previous values restored for week ' + week + ' if they were present');
+  sheet.getRange(entryRowStart,diffCol,totalMembers+1,diffCount).setHorizontalAlignment('left');
+  if (commentInclude == true) {
+    sheet.getRange(2,commentCol,totalMembers+1,1).setHorizontalAlignment('left');
+  }
+
+  sheet.getRange(1,1,summaryRow,1)
+    .setHorizontalAlignment('left');
+ 
+  sheet.setFrozenColumns(firstMatchCol-1);
+  sheet.setFrozenRows(dayRow);
+  sheet.getRange(1,1,1,columns)
+    .setBackground('black')
+    .setFontColor('white')
+    .setFontWeight('bold');
+  sheet.setRowHeights(1,rows,21);
+
+  sheet.getRange(matchRow,1,1,sheet.getMaxColumns()).setVerticalAlignment('middle');
+  sheet.setRowHeight(matchRow,50);
+  sheet.getRange(matchRow,1).setFontSize(18)
+    .setHorizontalAlignment('center');
+  
+  sheet.getRange(dayRow,firstMatchCol,1,matches).setFontSize(7);
+  sheet.getRange(dayRow,1,1,maxCols).setBackground('#CCCCCC');
+  sheet.getRange(dayRow,firstMatchCol,1,dayRowColors.length).setBackgrounds([dayRowColors]);
+  sheet.getRange(dayRow,1,1,firstMatchCol-1).mergeAcross();
+  sheet.getRange(dayRow,1).setValue(matches + ' NFL MATCHES')
+    .setHorizontalAlignment('left');
+  
+  sheet.getRange(outcomeRow,1,1,firstMatchCol-1).mergeAcross();
+  sheet.getRange(outcomeRow,1,1,firstMatchCol-1).setHorizontalAlignment('right');  
+  sheet.getRange(outcomeRow,1,1,maxCols).setBackground('black')
+    .setFontColor('white')
+    .setFontWeight('bold');
+  sheet.getRange(bonusRow,1,1,maxCols).setBackground('black')
+    .setFontColor('white');
+  sheet.getRange(bonusRow,1,1,firstMatchCol-1).mergeAcross()
+    .setHorizontalAlignment('right');
+  if (bonus == false) {
+    sheet.hideRows(bonusRow);
+  }
+
+  sheet.setRowHeight(summaryRow,40);
+  sheet.getRange(summaryRow,1,1,sheet.getMaxColumns()).setVerticalAlignment('middle');
+  sheet.getRange(summaryRow,1,1,maxCols-diffCount).setBackground('#CCCCCC');
+  sheet.getRange(summaryRow,2).setBackground(awayColors[1]);
+  sheet.getRange(summaryRow,3).setBackground(homeColors[1]);
+
+  sheet.setColumnWidths(diffCol,diffCount,90);
+  sheet.getRange(1,diffCol,2,diffCount)
+    .setHorizontalAlignment('left')
+    .mergeAcross();
+
+  if (tiebreaker) {
+    sheet.getRange(outcomeRow,tiebreakerCol).setNote('Enter the summed score of the outcome of the final game of the week in this cell to complete the week and designate a winner');
+  }
+  sheet.getRange(dayRow,finalMatchCol+1,1,finalCol-finalMatchCol-diffCount).mergeAcross();
+
+  // DATA RESTORATION
+  if (dataRestore && !fresh) {
+    let allPreviousPicks = [], allTiebreakers = [], allComments = [];
+    for (let a = entryRowStart; a <= entryRowEnd; a++) {
+      let previousPicks = [];
+      let index = previousNames.indexOf(sheet.getRange(a,1).getValue());
+      if (index >= 0) {
+        // exportMatches format: [[day,away,home],.....]
+        for (let b = 0; b < exportMatches.length; b++) {
+          let away = exportMatches[b][1];
+          let home = exportMatches[b][2];
+          if (previousData[index].indexOf(away) >= 0) {
+            previousPicks.push(away);
+          } else if (previousData[index].indexOf(home) >= 0) {
+            previousPicks.push(home);
+          } else {
+            previousPicks.push('');
+          }
+        }
+        // If member found attempt to log tiebreaker and comment values, if present
+        if (tiebreaker && tiebreakerCol > 5) {
+          try {
+            allTiebreakers.push(previousTiebreakers[index]);
+          }
+          catch (err) {
+            allTiebreakers.push(['']);
+          }
+        } else {
+          allTiebreakers.push(['']);
+        }
+        if (commentInclude && commentCol > 6) {
+          try {
+            allComments.push(previousComment[index]);
+          }
+          catch (err) {
+            allComments.push(['']);
+          }
+        } else {
+          allComments.push(['']);
+        }         
       } else {
-        Logger.log('ERROR: Previous data not transferred! Undo immediately');
-        ss.toast('ERROR: Previous data not transferred! Undo immediately');
+        for (let b = 0; b < exportMatches; b++) {
+          previousPicks.push('');
+        }
       }
-      if (commentCol  >= 0 && commentInclude == true) {
-        try {
-          previousCommentRange.setValues(previousComment);
-        }
-        catch (err) {
-        }
+      allPreviousPicks.push(previousPicks);
+    }
+    
+    sheet.getRange(entryRowStart,firstMatchCol,allPreviousPicks.length,matches).setValues(allPreviousPicks);
+
+    try {
+      sheet.getRange(entryRowStart,tiebreakerCol,allTiebreakers.length,1).setValues(allTiebreakers);
+    }
+    catch (err) {
+      Logger.log('Error setting tiebreaker column values or tiebreaker feature disabled.');
+    }
+
+    try {
+      sheet.getRange(entryRowStart,commentCol,allComments.length,1).setValues(allComments);
+    }
+    catch (err) {
+      Logger.log('Error setting comment column values or comment feature disabled.');
+    }
+    let outcomes = [];
+    for (let a = 0; a < exportMatches.length; a++) {
+      let away = exportMatches[a][1];
+      let home = exportMatches[a][2];
+      if (previousOutcomes.indexOf(away) >= 0) {
+        outcomes.push(away);
+      } else if (previousOutcomes.indexOf(home) >= 0) {
+        outcomes.push(home);
+      } else {
+        outcomes.push('');
       }
     }
+    sheet.getRange(outcomeRow,firstMatchCol,1,matches).setValues([outcomes]);
+    try {
+      sheet.getRange(outcomeRow,tiebreakerCol).setValue(previousTiebreaker);
+    }
+    catch (err) {
+      Logger.log('Unable to replace previous week tiebreaker value.');
+    }
+
+    ss.toast('Previous data restored for week ' + week + ' if they were present');
+    Logger.log('Previous data restored for week ' + week + ' if they were present');
   }
-  catch (err) {
-    Logger.log('ERROR: Previous data not transferred or didn\'t exist! Undo immediately');
-    ss.toast('ERROR: Previous data not transferred or didn\'t exist! Undo immediately');
-  }
-  nflOutcomesSheetUpdate(year,week,exportMatches);
+  // END DATA RESTORATION
+
+  // Updates NFL_OUTCOMES sheet to reference weekly sheet for values along "outcomeRow"  
+  nflOutcomesSheetUpdate(year,week);
+
+  ss.toast('Completed creation of pick \'ems week ' + week + ' sheet.');
   return sheet;
 }
 
-//------------------------------------------------------------------------
+// WEEKLY Sheet Creation Function - creates a sheet with provided year and week
+function weeklySheetCreate(next,restore) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  const year = fetchYear();
+  const weeks = fetchWeeks();
+  
+  if (next == null) {
+    let all = [], next, weekString, missing = [], sheets = ss.getSheets();
+    let regex = new RegExp(year+'_[0-9]{2}'); // sheetName = year + '_0' + week (needs to be updated when new weekly naming changes)
+    for (let a = 1; a <= weeks; a++) {
+      all.push(a);
+      missing.push(a);
+    }
+    for (let a = 1; a < sheets.length; a++) {
+      if (regex.test(sheets[a].getSheetName())) {
+        let week = parseInt(sheets[a].getName().replace(year+'_',''));
+        all[week-1] = '';
+        missing.splice(missing.indexOf(week),1);
+      }
+    }
+    next = all.lastIndexOf('') + 2; // Offset by 2: 1 for array indexing, 1 for going past last week
+    let prompt, fresh = false;
+    let ask = false;
+    if (missing.length == 1) {
+      weekString = 'Week ' + missing[0] + ' is the only one missing.';
+    } else if (missing.length == 2) {
+      weekString = 'Weeks ' + missing[0] + ' and ' + missing[1] + ' are missing.';
+    } else if (missing.length > 2) {
+      weekString = 'Weeks ' + missing[0];
+      for (let a = 1; a < missing.length; a++) {
+        if (a == missing.length - 1) {
+          weekString = weekString.concat(', and ' + missing[a]);
+        } else {
+          weekString = weekString.concat(', ' + missing[a]);
+        }
+      }
+      weekString = weekString.concat(' are missing.');  
+    }
+    if (next > 0) {
+      prompt = ui.alert('Would you like to create a sheet for week ' + next + '?\r\n\r\n(Select \'NO\' to enter a different week number)', ui.ButtonSet.YES_NO_CANCEL);
+      if (prompt == ui.Button.NO) {
+        ask = true;
+      } else if (prompt == ui.Button.CANCEL) {
+        Logger.log('Canceled during prompt for creating week ' + next + '.');
+        throw new Error('Canceled during prompt for creating week ' + next + '.');
+      } else {
+        fresh = true;
+      }
+    } else {
+      prompt = ui.alert('All sheets for this season exist, would you like to recreate one of the sheets?', ui.ButtonSet.YES_NO);
+      if (prompt == ui.Button.NO) {
+        Logger.log('Canceled during prompt for creating another week since all weeks exist');
+        throw new Error('Canceled during prompt for creating another week since all weeks exist');
+      }
+    }
+    if (restore == null) {
+      restore = false;
+    }
+    let confirm, other = 0;
+    regex = new RegExp('[0-9]{1,2}');
+    let invalid = 'That week was invalid, please try again:';
+    if (ask) {
+      prompt = ui.prompt('Which sheet would you like to create or recreate?\r\n\r\n' + weekString, ui.ButtonSet.OK_CANCEL);
+      other = prompt.getResponseText();
+      let promptText = invalid;
+      Logger.log('outer = ' + other);
+      while (prompt.getSelectedButton() == 'OK' || !regex.test(other) || (other < 1 || other > weeks)) {
+        while (prompt.getSelectedButton() == 'OK' && (!regex.test(other) || (other < 1 || other > weeks))) {
+          prompt = ui.prompt(promptText, ui.ButtonSet.OK_CANCEL);
+          other = prompt.getResponseText();
+          Logger.log(other);
+          promptText = invalid;
+        }
+        if (missing.indexOf(other) == -1 && prompt.getSelectedButton() == 'OK') {
+          confirm = ui.alert('There is already a sheet for week ' + other + ' would you like to recreate it?\r\n\r\nClick \'NO\' to enter a different week.', ui.ButtonSet.YES_NO_CANCEL);
+          restore = true;
+        } else if (prompt.getSelectedButton() == 'OK') {
+          confirm = ui.alert('Create a weekly sheet for week ' + other + '?\r\n\r\nClick \'NO\' to enter a different week.', ui.ButtonSet.YES_NO_CANCEL);
+          restore = false;
+        }
+        if (confirm == ui.Button.YES) {
+          next = other;
+          break;
+        } else if (confirm == ui.Button.NO) {
+          other = 0;
+          promptText = 'Try entering a different week value to create or recreate\r\n\r\n' + weekString;
+        } else {
+          break;
+        }
+      }
+      if (prompt.getSelectedButton() != 'OK') {
+        Logger.log('Canceled during prompt for entering custom week value');
+        throw new Error('Canceled during prompt for entering custom week value');
+      }
+    }
+    if (confirm == ui.Button.YES && restore) {
+      ss.toast('Recreating sheet for week ' + next + ', data will be retained if possible');
+      weeklySheet(year,next,memberList(),restore);
+    } else if(confirm == ui.Button.YES || fresh) {
+      ss.toast('Creating a new sheet for week ' + next);
+      weeklySheet(year,next,memberList(),restore);
+    }
+  } else {
+    ss.toast('Creating a sheet for week ' + next);
+    if (restore == null) {
+      restore = false;
+    }
+    weeklySheet(year,next,memberList(),restore);
+  }
+}
+
 // OVERALL Sheet Creation / Adjustment
 function overallSheet(year,weeks,members) {
   
@@ -2503,7 +3006,6 @@ function overallSheet(year,weeks,members) {
   return sheet;  
 }
 
-//------------------------------------------------------------------------
 // OVERALL RANK Sheet Creation / Adjustment
 function overallRankSheet(year,weeks,members) {
   
@@ -2609,7 +3111,6 @@ function overallRankSheet(year,weeks,members) {
   return sheet;  
 }
 
-//------------------------------------------------------------------------
 // OVERALL PERCENT Sheet Creation / Adjustment
 function overallPctSheet(year,weeks,members) {
   
@@ -2714,7 +3215,6 @@ function overallPctSheet(year,weeks,members) {
   return sheet;  
 }
 
-//------------------------------------------------------------------------
 // MNF Sheet Creation / Adjustment
 function mnfSheet(year,weeks,members) {
   
@@ -2847,102 +3347,6 @@ function mnfSheet(year,weeks,members) {
   return sheet;  
 }
 
-//------------------------------------------------------------------------
-// OVERALL / OVERALL RANK / OVERALL PCT / MNF Combination formula for sum/average per player row
-function overallPrimaryFormulas(sheet,totalMembers,maxCols,action,avgRow) {
-  for ( let a = 1; a < totalMembers; a++ ) {
-    if (action == 'average') {
-      sheet.getRange(2,2,a+1,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,average(R[0]C3:R[0]C'+maxCols+')))');
-    } else if (action == 'sum') {
-      sheet.getRange(2,2,a+1,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,sum(R[0]C3:R[0]C'+maxCols+')))');
-    }
-    if (sheet.getSheetName() == 'OVERALL_PCT') {
-      sheet.getRange(2,2,a+1,1).setNumberFormat("##.#%");
-    } else if (action == 'sum') {
-      sheet.getRange(2,2,a+1,1).setNumberFormat("##");
-    } else {
-      sheet.getRange(2,2,a+1,1).setNumberFormat("#0.0");
-    }
-  }
-  if (avgRow == true){
-    sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
-  } 
-}
-
-//------------------------------------------------------------------------
-// OVERALL / OVERALL RANK / OVERALL PCT / MNF Combination formula for each column (week)
-function overallMainFormulas(sheet,totalMembers,weeks,year,str,avgRow) {
-  let b;
-  for (let a = 1; a <= weeks; a++ ) {
-    b = 1;
-    for (b ; b <= totalMembers; b++) {
-      sheet.getRange(b+1,a+2).setFormula('=iferror(arrayformula(vlookup(R[0]C1,{NAMES_'+year+'_'+a+','+str+'_'+year+'_'+a+'},2,false)))');
-      if (sheet.getSheetName() == 'OVERALL_PCT') {
-        sheet.getRange(b+1,a+2).setNumberFormat("##.#%");
-      } else {
-        sheet.getRange(b+1,a+2).setNumberFormat("#0");
-      }
-    }
-  }
-  if (avgRow == true){
-    for (let a = 0; a < weeks; a++){
-      let rows = sheet.getMaxRows();
-      sheet.getRange(rows,a+3).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
-    }
-  }
-}
-
-//------------------------------------------------------------------------
-// WEEKLY WINNERS Combination formula update
-function winnersFormulas(sheet,weeks,year) {
-  for (let a = 1; a <= weeks; a++ ) {
-    let winRange = 'WIN_' + year + '_' + a;
-    let nameRange = 'NAMES_' + year + '_' + a;
-    sheet.getRange(a+1,2).setFormulaR1C1('=iferror(join(", ",sort(filter('+nameRange+','+winRange+'=1),1,true)))');
-  }
-}
-
-//------------------------------------------------------------------------
-// REFRESH FORMULAS FOR OVERALL / OVERALL RANK / OVERALL PCT / MNF
-function allFormulasUpdate(){
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
-  const mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
-  const members = memberList();
-  const weeks = fetchWeeks();
-  const year = fetchYear();
-  let sheet, totalMembers, maxCols;
-
-  if ( pickemsInclude == true ) {
-    sheet = ss.getSheetByName('OVERALL');
-    maxCols = sheet.getMaxColumns();
-    totalMembers = members.length;
-    overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',true);
-    overallMainFormulas(sheet,totalMembers,weeks,year,'TOT',true);
-
-    sheet = ss.getSheetByName('OVERALL_RANK');
-    maxCols = sheet.getMaxColumns();
-    overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',false);
-    overallMainFormulas(sheet,totalMembers,weeks,year,'RANK',false);
-  
-    sheet = ss.getSheetByName('OVERALL_PCT');
-    maxCols = sheet.getMaxColumns();
-    overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',true);
-    overallMainFormulas(sheet,totalMembers,weeks,year,'PCT',true);
-    
-    if (mnfInclude == true) {
-      sheet = ss.getSheetByName('MNF');
-      maxCols = sheet.getMaxColumns();
-      overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',false);
-      overallMainFormulas(sheet,totalMembers,weeks,year,'MNF',false);
-    }
-
-    sheet = ss.getSheetByName('WINNERS');
-    winnersFormulas(sheet,weeks,year);
-  }
-}
-
-//------------------------------------------------------------------------
 // SURVIVOR Sheet Creation / Adjustment
 function survivorSheet(year,weeks,members,dataRestore) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2998,11 +3402,11 @@ function survivorSheet(year,weeks,members,dataRestore) {
   
   let formula;
   for (let b = 2; b <= totalMembers; b++ ) {
-    formula = '=iferror(vlookup(indirect(\"R[0]C1\",false),indirect(\"SURVIVOR_EVAL\"),2,false))';
+    formula = '=iferror(vlookup(indirect(\"R[0]C1\",false),SURVIVOR_EVAL,2,false))';
     sheet.getRange(2,eliminatedCol,b,1).setFormulaR1C1(formula);
   }
   for (let b = 1; b < weeks; b++ ) {
-    formula = '=if(indirect(\"R1C[0]\",false)<indirect(\"SURVIVOR_START\"),,iferror(if(sum(arrayformula(if(isblank(R2C[0]:R[-1]C[0]),0,1)))>0,counta(R2C1:R[-1]C1)-countif(R2C2:R[-1]C2,\"\<=\"\&R1C[0]),)))';
+    formula = '=if(indirect(\"R1C[0]\",false)<SURVIVOR_START,,iferror(if(sum(arrayformula(if(isblank(R2C[0]:R[-1]C[0]),0,1)))>0,counta(R2C1:R[-1]C1)-countif(R2C2:R[-1]C2,\"\<=\"\&R1C[0]),)))';
     sheet.getRange(totalMembers+2,eliminatedCol+b).setFormulaR1C1(formula);
   }
   
@@ -3140,8 +3544,16 @@ function survivorSheet(year,weeks,members,dataRestore) {
   return sheet;
 }
 
-//------------------------------------------------------------------------
-// SURVIVOR Sheet Creation / Adjustment
+// SURVIVOR DONE FORMULA Updates the formula for the survivor pool completion status
+function survivorDoneFormula(ss) {
+  // Replace the formula in the Survivor Done cell to re-evaluate
+  if (ss == undefined) {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  }
+  ss.getRangeByName('SURVIVOR_DONE').setValue('=iferror(if(SURVIVOR_EVAL_REMAINING<=1,true,false))');
+}
+
+// SURVIVOR EVAL Sheet Creation / Adjustment
 function survivorEvalSheet(year,weeks,members,survivorStart) {
   let ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheetName = 'SURVIVOR_EVAL';
@@ -3206,7 +3618,7 @@ function survivorEvalSheet(year,weeks,members,survivorStart) {
     formula = '=if(indirect(\"R1C[0]\",false)<indirect(\"SURVIVOR_START\"),,iferror(if(sum(arrayformula(if(isblank(R2C[0]:R[-1]C[0]),0,1)))>0,counta(R2C1:R[-1]C1)-countif(R2C2:R[-1]C2,\"\<=\"\&R1C[0]),)))';
     sheet.getRange(totalMembers+2,eliminatedCol+b).setFormulaR1C1(formula);
   }
-  formula = '=iferror(iferror(if(match(indirect(\"SURVIVOR!R[0]C[0]\",false),indirect(\"NFL_'+year+'_OUTCOMES_\"\&indirect(\"R1C[0]\",false),false),0)>0,0,1),iferror(if(match(iferror(vlookup(indirect(\"SURVIVOR!R[0]C[0]\",false),{indirect(\"NFL_'+year+'_AWAY_\"\&indirect(\"R1C[0]\",false)),indirect(\"NFL_'+year+'_HOME_\"\&indirect(\"R1C[0]\",false))},2,false),vlookup(indirect(\"SURVIVOR!R[0]C[0]\",false),{indirect(\"NFL_'+year+'_HOME_\"\&indirect(\"R1C[0]\",false)),indirect(\"NFL_'+year+'_AWAY_\"\&indirect(\"R1C[0]\",false))},2,false)),indirect(\"NFL_'+year+'_OUTCOMES_\"\&indirect(\"R1C[0]\",false),false),0)>0,1,0),if(and(isblank(indirect(\"SURVIVOR!R[0]C[0]\",false)),indirect(\"R1C[0]\",false)<indirect(\"WEEK\")),1,if(and(isblank(indirect(\"SURVIVOR!R[0]C[0]\",false)),indirect(\"R1C[0]\",false)<indirect(\"WEEK\"),indirect(\"R1C[0]\",false)<>indirect(\"SURVIVOR_START\")),1,)))))';
+  formula = '=iferror(iferror(if(match(indirect(\"SURVIVOR!R[0]C[0]\",false),indirect(\"NFL_'+year+'_OUTCOMES_\"\&indirect(\"R1C[0]\",false),false),0)>0,0,1),iferror(if(match(iferror(vlookup(indirect(\"SURVIVOR!R[0]C[0]\",false),{indirect(\"NFL_'+year+'_AWAY_\"\&indirect(\"R1C[0]\",false)),indirect(\"NFL_'+year+'_HOME_\"\&indirect(\"R1C[0]\",false))},2,false),vlookup(indirect(\"SURVIVOR!R[0]C[0]\",false),{indirect(\"NFL_'+year+'_HOME_\"\&indirect(\"R1C[0]\",false)),indirect(\"NFL_'+year+'_AWAY_\"\&indirect(\"R1C[0]\",false))},2,false)),indirect(\"NFL_'+year+'_OUTCOMES_\"\&indirect(\"R1C[0]\",false),false),0)>0,1,0),if(and(isblank(indirect(\"SURVIVOR!R[0]C[0]\",false)),indirect(\"R1C[0]\",false)<WEEK),1,if(and(isblank(indirect(\"SURVIVOR!R[0]C[0]\",false)),indirect(\"R1C[0]\",false)<WEEK,indirect(\"R1C[0]\",false)<>indirect(\"SURVIVOR_START\")),1,)))))';
   sheet.getRange(2,eliminatedCol+1,totalMembers,weeks).setFormulaR1C1(formula);
 
              
@@ -3331,12 +3743,13 @@ function survivorEvalSheet(year,weeks,members,survivorStart) {
   range = sheet.getRange(2,1,totalMembers,weeks+2);
   ss.setNamedRange('SURVIVOR_EVAL',range);
   
+  survivorDoneFormula(ss);
+
   sheet.hideSheet();
   
   return sheet;
 }
 
-//------------------------------------------------------------------------
 // WINNERS Sheet Creation / Adjustment
 function winnersSheet(year,weeks,members) {
   
@@ -3452,7 +3865,6 @@ function winnersSheet(year,weeks,members) {
 
 }
 
-//------------------------------------------------------------------------
 // SUMMARY Sheet Creation / Adjustment
 function summarySheet(year,members,pickemsInclude,mnfInclude,survivorInclude) {
   
@@ -3666,7 +4078,6 @@ function summarySheet(year,members,pickemsInclude,mnfInclude,survivorInclude) {
   return sheet;  
 }
 
-//------------------------------------------------------------------------
 // UPDATES SUMMARY SHEET FORMULAS
 function summarySheetFormulas(totalMembers,year) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -3697,6 +4108,362 @@ function summarySheetFormulas(totalMembers,year) {
   Logger.log('Updated formulas and ranges for summary sheet');
 }
 
+// OVERALL / OVERALL RANK / OVERALL PCT / MNF Combination formula for sum/average per player row
+function overallPrimaryFormulas(sheet,totalMembers,maxCols,action,avgRow) {
+  for ( let a = 1; a < totalMembers; a++ ) {
+    if (action == 'average') {
+      sheet.getRange(2,2,a+1,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,average(R[0]C3:R[0]C'+maxCols+')))');
+    } else if (action == 'sum') {
+      sheet.getRange(2,2,a+1,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,sum(R[0]C3:R[0]C'+maxCols+')))');
+    }
+    if (sheet.getSheetName() == 'OVERALL_PCT') {
+      sheet.getRange(2,2,a+1,1).setNumberFormat("##.#%");
+    } else if (action == 'sum') {
+      sheet.getRange(2,2,a+1,1).setNumberFormat("##");
+    } else {
+      sheet.getRange(2,2,a+1,1).setNumberFormat("#0.0");
+    }
+  }
+  if (avgRow == true){
+    sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
+  } 
+}
+
+// OVERALL / OVERALL RANK / OVERALL PCT / MNF Combination formula for each column (week)
+function overallMainFormulas(sheet,totalMembers,weeks,year,str,avgRow) {
+  let b;
+  for (let a = 1; a <= weeks; a++ ) {
+    b = 1;
+    for (b ; b <= totalMembers; b++) {
+      sheet.getRange(b+1,a+2).setFormula('=iferror(arrayformula(vlookup(R[0]C1,{NAMES_'+year+'_'+a+','+str+'_'+year+'_'+a+'},2,false)))');
+      if (sheet.getSheetName() == 'OVERALL_PCT') {
+        sheet.getRange(b+1,a+2).setNumberFormat("##.#%");
+      } else {
+        sheet.getRange(b+1,a+2).setNumberFormat("#0");
+      }
+    }
+  }
+  if (avgRow == true){
+    for (let a = 0; a < weeks; a++){
+      let rows = sheet.getMaxRows();
+      sheet.getRange(rows,a+3).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
+    }
+  }
+}
+
+// WEEKLY WINNERS Combination formula update
+function winnersFormulas(sheet,weeks,year) {
+  for (let a = 1; a <= weeks; a++ ) {
+    let winRange = 'WIN_' + year + '_' + a;
+    let nameRange = 'NAMES_' + year + '_' + a;
+    sheet.getRange(a+1,2).setFormulaR1C1('=iferror(join(", ",sort(filter('+nameRange+','+winRange+'=1),1,true)))');
+  }
+}
+
+// REFRESH FORMULAS FOR OVERALL / OVERALL RANK / OVERALL PCT / MNF
+function allFormulasUpdate(){
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
+  const mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
+  const members = memberList();
+  const weeks = fetchWeeks();
+  const year = fetchYear();
+  let sheet, totalMembers, maxCols;
+
+  if ( pickemsInclude == true ) {
+    sheet = ss.getSheetByName('OVERALL');
+    maxCols = sheet.getMaxColumns();
+    totalMembers = members.length;
+    overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',true);
+    overallMainFormulas(sheet,totalMembers,weeks,year,'TOT',true);
+
+    sheet = ss.getSheetByName('OVERALL_RANK');
+    maxCols = sheet.getMaxColumns();
+    overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',false);
+    overallMainFormulas(sheet,totalMembers,weeks,year,'RANK',false);
+  
+    sheet = ss.getSheetByName('OVERALL_PCT');
+    maxCols = sheet.getMaxColumns();
+    overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',true);
+    overallMainFormulas(sheet,totalMembers,weeks,year,'PCT',true);
+    
+    if (mnfInclude == true) {
+      sheet = ss.getSheetByName('MNF');
+      maxCols = sheet.getMaxColumns();
+      overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',false);
+      overallMainFormulas(sheet,totalMembers,weeks,year,'MNF',false);
+    }
+
+    sheet = ss.getSheetByName('WINNERS');
+    winnersFormulas(sheet,weeks,year);
+  }
+}
+
+// BONUS TOOLS
+//------------------------------------------------------------------------
+// BONUS STATE - writes bonus state, reveals or hides bonus row of current week, and adds named range if missing
+function bonusState(bonus) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (bonus == null) {
+    try {
+      bonus = ss.getRangeByName('BONUS_PRESENT').getValue();
+    }
+    catch (err) {
+      bonus = false;
+      ss.toast('No bonus state provided to bonusState function and no existing value in sheet, setting to \'false\'');
+      Logger.log('No bonus state provided to bonusState function and no existing value in sheet, setting to \'false\'');
+    }
+  }
+  try{
+    let bonusCell = ss.getRangeByName('BONUS_PRESENT');
+    bonusCell.setValue(bonus);
+  }
+  catch (err) {
+    Logger.log('Creating a \'BONUS_PRESENT\' value on the CONFIG page');
+    let labelRange = ss.getSheetByName('CONFIG').getRange(ss.getRangeByName('PICKEMS_PRESENT').getRow(),ss.getRangeByName('PICKEMS_PRESENT').getColumn()+1);
+    let valueRange = ss.getSheetByName('CONFIG').getRange(labelRange.getRow(),labelRange.getColumn()+1);
+    labelRange.setValue('BONUS GAMES')
+      .setFontWeight('bold');
+    valueRange.setValue(bonus);
+    ss.setNamedRange('BONUS_PRESENT',valueRange);
+  }
+  const year = fetchYear();
+  const week = fetchWeek();
+  try {
+    let range = ss.getRangeByName('NFL_'+year+'_BONUS_'+week);
+    if (bonus == true) {
+      range.getSheet().showRows(range.getRow());
+      ss.toast('Bonus row for week ' + week + ' is now visible');
+      Logger.log('Bonus row for week ' + week + ' is now visible');
+    } else {
+      let range = ss.getRangeByName('NFL_'+year+'_BONUS_'+week);
+      range.getSheet().hideRows(range.getRow());
+      ss.toast('Bonus row for week ' + week + ' is now hidden');
+      Logger.log('Bonus row for week ' + week + ' is now hidden');
+    }
+  }
+  catch (err) {
+    if (bonus == true) {
+      ss.toast('No bonus row exists for week ' + week + ' future weeks will have a bonus row present. Update the \'WEEK\' value on the \'CONFIG\' sheet if you intended to reveal the bonus row on another week');
+      Logger.log('The week '+ week + ' sheet doesn\'t have a bonus row to reveal, future weeks will have a bonus row present');
+    } else {
+      ss.toast('No bonus row exists for week ' + week + ' future weeks will have a bonus row hidden. Update the \'WEEK\' value on the \'CONFIG\' sheet if you intended to hide the bonus row on another week');
+      Logger.log('The week '+ week + ' sheet doesn\'t have a bonus row to hide, future weeks will have a bonus row hidden');
+    }
+  }
+  createMenu(null,true);
+}
+
+// BONUS STATE TRUE - calls bonus state function to write value as "TRUE"
+function bonusUnhide() {
+  bonusState(true);
+}
+
+// BONUS STATE FALSE - calls bonus state function to write value as "FALSE"
+function bonusHide() {
+  bonusState(false);
+}
+
+// DOUBLE MNF STATE - writes double MNF state, changes bonus row value if present, and adds named range if missing
+function bonusDoubleMNF(double) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  let valueRange, mnfRange, text, arr = [];
+  if (double == null) {
+    try {
+      double = ss.getRangeByName('MNF_DOUBLE').getValue();
+    }
+    catch (err) {
+      double = false;
+      ss.toast('No double MNF state provided to bonusDoubleMNF function and no existing value in sheet, setting to \'false\'');
+      Logger.log('No double MNF state provided to bonusDoubleMNF function and no existing value in sheet, setting to \'false\'');
+    }
+  }
+  try{
+    let doubleCell = ss.getRangeByName('MNF_DOUBLE');
+    doubleCell.setValue(double);
+  }
+  catch (err) {
+    Logger.log('Creating a \'MNF_DOUBLE\' value on the CONFIG page');
+    let labelRange = ss.getSheetByName('CONFIG').getRange(ss.getRangeByName('MNF_PRESENT').getRow(),ss.getRangeByName('MNF_PRESENT').getColumn()+1);
+    valueRange = ss.getSheetByName('CONFIG').getRange(labelRange.getRow(),labelRange.getColumn()+1);
+    labelRange.setValue('MNF DOUBLE')
+      .setFontWeight('bold');
+    valueRange.setValue(double);
+    ss.setNamedRange('MNF_DOUBLE',valueRange);
+  }
+  const year = fetchYear();
+  const week = fetchWeek();
+  try {
+    mnfRange = ss.getRangeByName('NFL_'+year+'_MNF_'+week);
+    for (let a = 0; a < mnfRange.getNumColumns(); a++) {
+      if (double == true) { 
+        arr.push(2);
+      } else {
+        arr.push(1);
+      }
+    }
+  }
+  catch (err) {
+    text = 'MNF ERROR\r\n\r\nNo MNF games exist for week ' + week + ' or there was an error finding the MNF named range for the week. Future weeks will include MNF games marked as ';
+    if (double == true) {
+      text = text.concat('double.');
+    } else {
+      text = text.concat('as a normal game.');
+    }
+    ui.alert(text,ui.ButtonSet.OK);
+    Logger.log(text);
+  }
+  try {
+    let bonusRange = ss.getRangeByName('NFL_'+year+'_BONUS_'+week);
+    let doubleMNFRange = bonusRange.getSheet().getRange(bonusRange.getRow(),mnfRange.getColumn(),1,mnfRange.getNumColumns());
+    let notifyText = 'MNF DOUBLE\r\n\r\nWould you like to mark this week\'s ';
+    if (arr.length > 1) {
+      notifyText = notifyText.concat(arr.length + ' MNF games as ');
+    } else {
+      notifyText = notifyText.concat(' MNF game as ');
+    }
+    if (double == true) {
+      notifyText = notifyText.concat('double for week ' + week + ' and future weeks?');
+    } else {
+      notifyText = notifyText.concat('a normal game for week ' + week + ' and also count future MNF games as normal games?');
+    }
+    let notify = ui.alert(notifyText,ui.ButtonSet.YES_NO);
+    if (notify == ui.Button.YES) {
+      doubleMNFRange.setValues([arr]);
+      text = 'The ';
+      if (arr.length > 1) {
+        text = text.concat(arr.length + ' MNF games for week ' + week + ' were ');
+      } else {
+        text = text.concat('MNF game for week ' + week + ' was ');
+      }
+      text = text.concat('marked to be weighted as ');
+      if (double == true) { 
+        text = text.concat('double.');
+      } else {
+        text = text.concat('a normal game.');
+      }
+      ss.toast(text);
+      Logger.log(text);
+    } else {
+      double = !double;
+      valueRange.setValue(double);
+      Logger.log('Canceled MNF double operation and reset the value to \'' + double + '\'');
+    }
+  }
+  catch (err) {
+    Logger.log(err.stack);
+    let text = 'No bonus row exists for week ' + week + ' future weeks will have a bonus row present and will mark MNF as ';
+    if (double == true) {
+      text = text.concat('double.');
+    } else {
+      text = text.concat('a standard game.');
+    }
+    ss.toast(text);
+    Logger.log(text);
+  }
+  createMenu(null,true);
+}
+
+// DOUBLE MNF STATE ENABLE - uses bonusDoubleMNF with true value for menu
+function bonusDoubleMNFEnable() {
+  bonusDoubleMNF(true);
+}
+
+// DOUBLE MNF STATE ENABLE - uses bonusDoubleMNF with false value for menu
+function bonusDoubleMNFDisable() {
+  bonusDoubleMNF(false);
+}
+
+// GAME OF THE WEEK - selects one random game for 2x multiplier to be applied
+function bonusRandomGame() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  let mnfDouble, bonusRange, text;
+  try { 
+    mnfDouble = ss.getRangeByName('MNF_DOUBLE').getValue();
+  }
+  catch (err) {
+    Logger.log('No \'MNF_DOUBLE\' named range');
+    ui.alert('MNF DOUBLE NOT SET\r\n\r\nNo MNF Double range established for inclusion/exclusion of MNF games, please run the enable/disable MNF Double function and try this one again after that has been set', ui.ButtonSet.OK);
+    throw new Error('Canceled due to no MNF Double value');
+  }  
+  const year = fetchYear();
+  const week = fetchWeek();
+  try {
+    bonusRange = ss.getRangeByName('NFL_'+year+'_BONUS_'+week);
+  }
+  catch (err) {
+    Logger.log('No \'BONUS\' named range for week ' + week);
+    ui.alert('NO BONUS\r\n\r\nThe week ' + week + ' sheet does not have a bonus range to modify, please recreate the week ' + week + ' sheet before trying to randomly mark the Game of the Week', ui.ButtonSet.OK);
+    throw new Error('Canceled due to no BONUS row for week ' + week);
+  }
+  let mnf, mnfRange, bonusValues = bonusRange.getValues().flat();
+  
+  try {
+    mnfRange = ss.getRangeByName('NFL_'+year+'_MNF_'+week);
+    bonusValues.splice(bonusValues.length-mnfRange.getNumColumns(),mnfRange.getNumColumns());
+    bonusRange = bonusRange.getSheet().getRange(bonusRange.getRow(),bonusRange.getColumn(),1,bonusRange.getNumColumns()-mnfRange.getNumColumns());
+    if (mnfRange.getValues().length > 0) {
+      mnf = true;
+    } else {
+      mnf = false;
+    }
+  }
+  catch (err) {
+    Logger.log('No MNF range for week ' + week + '. Including all games in randomization.');
+    mnf = false;
+  }
+  for (let a = 0; a < bonusValues.length; a++) {
+    if (bonusValues[a] > 1) {
+      text = 'BONUS GAME ALREADY MARKED\r\n\r\nYou already have one or more games marked for 2x or greater weighting.\r\n\r\nMark all ';
+      if (mnfDouble && mnf) {
+        text = text.concat('non-MNF games\' weighting to 1 and try again');
+      } else {
+        text = text.concat('games\' weighting to 1 and try again');
+      }
+      ui.alert(text,ui.ButtonSet.OK);
+      throw new Error('Other games marked as bonus prior to running random Game of the Week function');
+    }
+  }
+
+  text = 'GAME OF THE WEEK\r\n\r\nWould you like to randomly select one game this week to count as double?\r\n\r\nAny MNF games will be ';
+  if (mnfDouble == true) {
+    text = text.concat('excluded since you have the MNF Double feature enabled');
+  } else {
+    text = text.concat('included since you have the MNF Double feature disabled');
+  }
+  let randomPrompt = ui.alert(text,ui.ButtonSet.YES_NO);
+  if (randomPrompt == ui.Button.YES) {
+    let gameOfTheWeekIndex = getRandomInt(0,bonusValues.length-1);
+    let matchupNames = ss.getRangeByName('NFL_'+year+'_'+week).getValues().flat();
+    
+    text = 'For week ' + week + ', your Game of the Week has been randomly selected as:\r\n\r\n';
+    try {
+      let regex = new RegExp('[A-Z]{2,3}','g');  
+      let matchup = matchupNames[gameOfTheWeekIndex].match(regex);
+      text = text.concat(matchup[0] + ' at ' + matchup[1] + '\r\n\r\nWould you like to mark it as such?');
+      let verify = ui.alert(text,ui.ButtonSet.OK_CANCEL);
+      if (verify == ui.Button.OK) {
+        bonusValues[gameOfTheWeekIndex] = 2;
+        bonusRange.setValues([bonusValues]);
+      } else {
+        ss.toast('Canceled setting Game of the Week');
+      }
+    }
+    catch (err) {
+      ss.toast('Error fetching matches or selecting Game of the Week\r\n\r\nError: ' + err.message);
+      Logger.log('Error fetching matches or selecting Game of the Week\r\n\r\nError: ' + err.message);
+    }
+  }
+  function getRandomInt(min, max) {
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+}
+
+// FORM TOOLS
 //------------------------------------------------------------------------
 // CREATE BLANK FORM OR FETCH EXISTING - Creates a form from a template or locates an existing form
 function formFetch(name,year,week,reset) {
@@ -3783,7 +4550,6 @@ function formFetch(name,year,week,reset) {
   }
 }
 
-//------------------------------------------------------------------------
 // CREATE FORMS FOR CORRECT WEEK BY CHECKING RECORDED GAMES - Tool to create form and populate with matchups as needed, creates custom survivor selection drop-downs for each member
 function formCreateAuto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -3829,7 +4595,6 @@ function formCreateAuto() {
   formCreate(false,week,year,null);
 }
 
-//------------------------------------------------------------------------
 // CREATE FORMS - Tool to create form and populate with matchups as needed, creates custom survivor selection drop-downs for each member
 function formCreate(auto,week,year,name) {
 
@@ -3873,17 +4638,17 @@ function formCreate(auto,week,year,name) {
     if ( auto != true && week != 1) {
       try { 
         data = ss.getRangeByName('NFL_' + year).getValues();
-        let refreshNFLPrompt = ui.alert('Do you want to refresh the NFL schedule data?\r\n\r\n(Only necessary when NFL schedule changes occur)', ui.ButtonSet.YES_NO);
+        let refreshNFLPrompt = ui.alert('NFL REFRESH\r\n\r\nDo you want to refresh the NFL schedule data?\r\n\r\n(Only necessary when NFL schedule changes occur)', ui.ButtonSet.YES_NO);
         if (refreshNFLPrompt == 'YES') {
           fetchNFL();
         }
       }
       catch (err) {
-        let fetchNFLPrompt = ui.alert('It looks like NFL data hasn\'t been brought in, import now?', ui.ButtonSet.YES_NO);
+        let fetchNFLPrompt = ui.alert('NFL SCHEDULE IMPORT\r\n\r\nIt looks like NFL data hasn\'t been brought in, import now?', ui.ButtonSet.YES_NO);
         if ( fetchNFLPrompt == 'YES' ) {
           fetchNFL();
         } else {
-          ui.alert('Please run again and import NFL first or click \'YES\' next time', ui.ButtonSet.OK);
+          ui.alert('RETRY\r\n\r\nPlease run again and import NFL first or click \'YES\' next time', ui.ButtonSet.OK);
         }
       }
     }
@@ -3924,9 +4689,9 @@ function formCreate(auto,week,year,name) {
     let newWeek;
     
     if (auto != true && (existingForm == null || existingForm == '')) {
-      formReset = ui.alert('Initiate form for week ' + week + '?', ui.ButtonSet.YES_NO);
+      formReset = ui.alert('NEW FORM\r\n\r\nInitiate form for week ' + week + '?\r\n\r\nSelecting \'NO\' will allow you to enter a number for a different week.', ui.ButtonSet.YES_NO);
     } else if (auto != true && existingForm != null) {
-      formReset = ui.alert('A form exists for week ' + week + ', do you want to delete the former form and create a new one?\r\n\r\n\ALERT: This will delete any previous form responses for this week.', ui.ButtonSet.YES_NO);
+      formReset = ui.alert('FORM EXIST\r\n\r\nA form exists for week ' + week + ', do you want to delete the former form and create a new one?\r\n\r\n\ALERT: This will delete any previous form responses for this week.', ui.ButtonSet.YES_NO);
       if (formReset == 'YES') {
         deleteExisting = true;
       }
@@ -3934,15 +4699,15 @@ function formCreate(auto,week,year,name) {
       formReset = 'YES';
     }
     if ( formReset == ui.Button.NO && auto != true ) {
-      changeWeek = ui.alert('Create form for another week than ' + week + '?', ui.ButtonSet.YES_NO);
+      changeWeek = ui.alert('ALTERNATIVE NEW FORM\r\n\r\nCreate form for another week than ' + week + '?', ui.ButtonSet.YES_NO);
       if ( changeWeek == 'YES' ) {
         newWeek = ui.prompt('Specify new week:', ui.ButtonSet.OK);
         week = newWeek.getResponseText();
         existingForm = ss.getRangeByName('FORM_WEEK_'+week).getValue();
         let fetched = formFetch(name,year,week);
         formId = fetched[0];
-        if (fetched[1] == true) {
-          formReset = ui.alert('A form exists for week ' + week + ', do you want to delete the former form and create a new one?\r\n\r\n\ALERT: This will delete any previous form responses for this week.', ui.ButtonSet.YES_NO);
+        if (fetched[1]) {
+          formReset = ui.alert('FORM EXISTS\r\n\r\nA form exists for week ' + week + ', do you want to delete the former form and create a new one?\r\n\r\n\ALERT: This will delete any previous form responses for this week.', ui.ButtonSet.YES_NO);
           if (formReset == 'YES') {
             deleteExisting = true;
           }
@@ -3953,18 +4718,18 @@ function formCreate(auto,week,year,name) {
     }
     if ( formReset == 'YES' ) {
       let survivorReset, survivorUnlock;
-      if (survivorInclude == true && week != 1) {
-        if (survivorDone == true) {
-          survivorReset = ui.alert('Survivor contest has ended, would you like to restart the contest for week ' + week + '?', ui.ButtonSet.YES_NO);
+      if (survivorInclude && week != 1) {
+        if (survivorDone) {
+          survivorReset = ui.alert('SURVIVOR COMPLETE\r\n\r\nSurvivor contest has ended, would you like to restart the contest for week ' + week + '?', ui.ButtonSet.YES_NO);
           if (survivorReset == 'NO') {
             ss.getRangeByName('SURVIVOR_PRESENT').setValue(false);
           } else if (survivorReset == 'YES') {
-            survivorUnlock = ui.alert('Membership can be re-opened for new additions, would you like to allow new members to join for this round?', ui.ButtonSet.YES_NO);
+            survivorUnlock = ui.alert('NEW MEMBERS\r\n\r\nMembership can be re-opened for new additions, would you like to allow new members to join for this round?', ui.ButtonSet.YES_NO);
             if (survivorUnlock == 'YES') {
-              createMenuUnlockedWithTrigger(true);
+              createMenuUnlocked();
               ss.toast('Membership unlocked');
             } else {
-              createMenuLockedWithTrigger(true);
+              createMenuLocked();
               ss.toast('Membership locked');
             }
             ss.getRangeByName('SURVIVOR_START').setValue(week);
@@ -3974,13 +4739,13 @@ function formCreate(auto,week,year,name) {
         }
       }
       locked = membersSheetProtected();
-      if (locked == false && survivorInclude == true && pickemsInclude == false && week > survivorStart) {
-        createMenuLockedWithTrigger(true);
+      if (!locked && survivorInclude&& !pickemsInclude && week > survivorStart) {
+        createMenuLocked();
         ss.toast('Membership locked due to survivor already starting in week ' + survivorStart + '.');
       } else if (locked == false && week > survivorStart) {
         survivorUnlock = ui.alert('This week is past the start of the survivor pool, do you want to keep membership open to new members still?', ui.ButtonSet.YES_NO);
         if (survivorUnlock == 'NO') {
-          createMenuLockedWithTrigger(true);
+          createMenuLocked();
           ss.toast('Membership locked');
           locked = true;
         }
@@ -3992,7 +4757,7 @@ function formCreate(auto,week,year,name) {
 
 
       // Attempt to clear former form if user opted to remove it
-      if (deleteExisting == true) {
+      if (deleteExisting) {
         let form = FormApp.openById(existingForm);
         try {
           form.deleteAllResponses();
@@ -4234,7 +4999,7 @@ function formCreate(auto,week,year,name) {
       }
 
       if (locked == false && (pickemsInclude == true || (survivorInclude == true && week == survivorStart))) {
-        nameOptions.unshift(nameQuestion.createChoice('New User',newUserPage));
+        nameOptions.push(nameQuestion.createChoice('New User',newUserPage));
         nameQuestion.setHelpText('Select your name from the dropdown or select \'New User\' if you haven\'t joined yet.');
       } else if (pickemsInclude == false && survivorInclude == true && week != survivorStart) {
         nameQuestion.setHelpText('Select your name from the dropdown. If your name is not an option, then you were eliminated from the survivor pool.');
@@ -4255,7 +5020,7 @@ function formCreate(auto,week,year,name) {
       allFormulasUpdate();
 
       // Final alert and prompt to open tab of form
-      let pub = ui.alert('Form for week ' + week + ' shareable link:\r\n' + urlFormPub + '\r\n\r\nWould you like to open the weekly Form in a new tab?', ui.ButtonSet.YES_NO);
+      let pub = ui.alert('WEEK ' + week + ' FORM CREATED\r\n\r\nShareable link:\r\n' + urlFormPub + '\r\n\r\nWould you like to open the weekly Form in a new tab?', ui.ButtonSet.YES_NO);
       if ( pub == 'YES' ) {
         openUrl(urlFormPub);
       }
@@ -4263,15 +5028,14 @@ function formCreate(auto,week,year,name) {
     ss.toast('Canceled form creation');
     }
   } else if (pickemsInclude == false && (survivorInclude == true && week < survivorStart)) {
-    ui.alert('Your survivor pool start week is greater than this week (' + week + ') and you have no pick \'ems pool enabled. Change your start week for the survivor pool on the CONFIG sheet (normally hidden, but will be activate after you close this dialogue) or run the \"Create Form\" function again and it should prompt you to re-start survivor pool if not set', ui.ButtonSet.OK);
+    ui.alert('SURVIVOR ERROR\r\n\r\nYour survivor pool start week is greater than this week (' + week + ') and you have no pick \'ems pool enabled. Change your start week for the survivor pool on the CONFIG sheet (normally hidden, but will be activate after you close this dialogue) or run the \"Create Form\" function again and it should prompt you to re-start survivor pool if not set', ui.ButtonSet.OK);
     ss.getSheetByName('CONFIG').activate();
   } else if (survivorInclude == false && pickemsInclude == false) {
-    ui.alert('You have no pick \'ems competition included and survivor pool is either done or not enabled. Go to the CONFIG sheet (normally hidden, but will be activate after you close this dialogue) to change the presence of one or both and retry the \"Create Form\" function.', ui.ButtonSet.OK);
+    ui.alert('NO GAME\r\n\r\nYou have no pick \'ems competition included and survivor pool is either done or not enabled. Go to the CONFIG sheet (normally hidden, but will be activate after you close this dialogue) to change the presence of one or both and retry the \"Create Form\" function.', ui.ButtonSet.OK);
     ss.getSheetByName('CONFIG').activate();
   }
 }
 
-//------------------------------------------------------------------------
 // REMOVE NEW USER OPTION - Removes the 'New User' option from the current week's Form
 function removeNewUserQuestion() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -4306,17 +5070,15 @@ function removeNewUserQuestion() {
   }
 }
 
-//------------------------------------------------------------------------
 // OPEN URL - Quick script to open a new tab with the newly created form, in this case
 function openUrl(url){
-  var js = "<script>window.open('" + url + "', '_blank');google.script.host.close();</script>;";
-  var html = HtmlService.createHtmlOutput(js)
+  let js = "<script>window.open('" + url + "', '_blank');google.script.host.close();</script>;";
+  let html = HtmlService.createHtmlOutput(js)
     .setHeight(10)
     .setWidth(100);
   SpreadsheetApp.getUi().showModalDialog(html, 'Opening...');
 }
 
-//------------------------------------------------------------------------
 // OPEN FORM - Function to open the Google Form quickly from the menu
 function openForm(week) {
   if (week == null) {
@@ -4325,11 +5087,11 @@ function openForm(week) {
   let formId = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('FORM_WEEK_'+week).getValue();
   if (formId == null || formId == ''){
     let ui = SpreadsheetApp.getUi();
-    let alert = ui.alert('No Form created yet, would you like to create one now?', ui.ButtonSet.YES_NO);
+    let alert = ui.alert('NO FORM\r\n\r\nNo Form created yet, would you like to create one now?', ui.ButtonSet.YES_NO);
     if (alert == 'YES') {
       formCreateAuto();
     } else {
-      ui.alert('Try again after you\'ve created the initial Form.', ui.ButtonSet.OK);
+      ui.alert('NO FORM\r\n\r\nTry again after you\'ve created the initial Form.', ui.ButtonSet.OK);
     }
   } else {
     let form = FormApp.openById(formId);
@@ -4338,7 +5100,6 @@ function openForm(week) {
   }
 }
 
-//------------------------------------------------------------------------
 // CHECK SUBMISSIONS - Tool to check who's submitted the weekly form so far
 function formCheck(request,members,week) {
   let ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -4383,8 +5144,8 @@ function formCheck(request,members,week) {
       // Logger.log(names);
       return names;
     } else if (request == "new") {
-      for (var b = 0; b < members.length; b++) {
-        for (var c = 0; c < names.length; c++) {
+      for (let b = 0; b < members.length; b++) {
+        for (let c = 0; c < names.length; c++) {
           if (members[b] == names[c]){
             names.splice(c,1);
           }          
@@ -4414,11 +5175,10 @@ function formCheck(request,members,week) {
   catch (err) {
       Logger.log('formCheck: ' + err.message + ' \r\n' + err.stack);
       let ui = SpreadsheetApp.getUi();
-      ui.alert('No Form created yet, run \"Create Form\" from the \"Pick\’Ems\" menu', ui.ButtonSet.OK);
+      ui.alert('NO FORM\r\n\r\nNo Form created yet, run \"Create Form\" from the \"Pick\’Ems\" menu', ui.ButtonSet.OK);
   } 
 }
 
-//------------------------------------------------------------------------
 // ALERT FOR SUBMISSION CHECK
 function formCheckAlert() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -4432,7 +5192,7 @@ function formCheckAlert() {
   try {
     let formId = ss.getRangeByName('FORM_WEEK_'+week).getValues()[0][0];
     if ( configSheet == null || formId == null ) {
-      ui.alert('No Form created yet, run \"Create Form\" from the \"Pick\’Ems\" menu', ui.ButtonSet.OK);
+      ui.alert('NO FORM\r\n\r\nNo Form created yet, run \"Create Form\" from the \"Pick\’Ems\" menu', ui.ButtonSet.OK);
     } else {
       let members = memberList();
       let totalMembers = members.length;
@@ -4487,9 +5247,9 @@ function formCheckAlert() {
       } else {
         let prompt;
         if (membersNew.length == 1) {
-          prompt = ui.alert(membersNew[0] + ' filled out a form as a new member, would you like to update membership including this individual?',ui.ButtonSet.YES_NO);
+          prompt = ui.alert('NEW MEMBER\r\n\r\n' + membersNew[0] + ' filled out a form as a new member, would you like to update membership including this individual?',ui.ButtonSet.YES_NO);
         } else if (membersNew.length == 2) {
-          prompt = ui.alert(membersNew[0] + ' and ' + membersNew[1] + ' both filled out forms as new members, would you like to update membership to include these inviduals?', ui.ButtonSet.YES_NO);
+          prompt = ui.alert('NEW MEMBERS\r\n\r\n' + membersNew[0] + ' and ' + membersNew[1] + ' both filled out forms as new members, would you like to update membership to include these inviduals?', ui.ButtonSet.YES_NO);
         } else {
           let listed = membersNew[0] + ', ' + membersNew[1];
           for (let a = 2; a < membersNew.length; a++) {
@@ -4499,7 +5259,7 @@ function formCheckAlert() {
               listed = listed + ', ' + membersNew[a];
             }
           }
-          prompt = ui.alert(listed + ' filled out forms as new members, would you like to update membership to include these individuals?', ui.ButtonSet.YES_NO);
+          prompt = ui.alert('NEW MEMBERS\r\n\r\n' + listed + ' filled out forms as new members, would you like to update membership to include these individuals?', ui.ButtonSet.YES_NO);
         }
         let skip = false;
         if (prompt == 'YES') {
@@ -4517,7 +5277,7 @@ function formCheckAlert() {
               let itemResponses = formResponses[c].getItemResponses();
               let itemResponse = itemResponses[0].getResponse();
               if (itemResponse == membersNew[b]) {
-                let scrub = ui.alert('Do you want to remove the form entry for ' + itemResponse.getResponse() + '?\r\n\r\nThis will delete this individual\'s form response and picks entirely', ui.ButtonSet.YES_NO);
+                let scrub = ui.alert('REMOVE ENTRY\r\n\r\nDo you want to remove the form entry for ' + itemResponse.getResponse() + '?\r\n\r\nThis will delete this individual\'s form response and picks entirely', ui.ButtonSet.YES_NO);
                 if (scrub == 'YES') {
                   deleteIdArr.push(formResponses[c].getId());
                   deleteNameArr.push(membersNew[b]);
@@ -4526,7 +5286,7 @@ function formCheckAlert() {
                 for (let d = 0; d < itemResponses.length; d++) {
                   if (itemResponses[d].getResponse() == membersNew[b]) {
                     itemResponse = itemResponses[d].getResponse();
-                    let scrub = ui.alert('Do you want to remove the form entry for ' + itemResponse + '?\r\n\r\nThis will delete this individual\'s form response and picks entirely', ui.ButtonSet.YES_NO);
+                    let scrub = ui.alert('REMOVE ENTRY\r\n\r\nDo you want to remove the form entry for ' + itemResponse + '?\r\n\r\nThis will delete this individual\'s form response and picks entirely', ui.ButtonSet.YES_NO);
                     if (scrub == 'YES') {
                       deleteIdArr.push(formResponses[c].getId());
                       deleteNameArr.push(membersNew[b]);
@@ -4637,7 +5397,6 @@ function formCheckAlert() {
   }
 }
 
-//------------------------------------------------------------------------
 // DATA IMPORTING - Function to import responses from the surveys
 function dataTransfer(redirect,thursOnly) {
   let ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -4651,9 +5410,9 @@ function dataTransfer(redirect,thursOnly) {
   const commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
   let continueImport = false;
   if (redirect == null) {
-    let weekPrompt = ui.alert('Import picks from week ' + week + '?\r\n\r\nSelectiong \'NO\' will allow you to select a different week', ui.ButtonSet.YES_NO_CANCEL);
+    let weekPrompt = ui.alert('IMPORT PICKS\r\n\r\nBring in picks from week ' + week + '?\r\n\r\nSelectiong \'NO\' will allow you to select a different week', ui.ButtonSet.YES_NO_CANCEL);
     if (weekPrompt == 'NO') {
-      weekPrompt = ui.prompt('Type the number of the week you\'d like to import:',ui.ButtonSet.OK_CANCEL);
+      weekPrompt = ui.prompt('ENTER WEEK\r\n\r\nType the number of the week you\'d like to import:',ui.ButtonSet.OK_CANCEL);
       let regex = new RegExp('[0-9]{1,2}');
       if (regex.test(weekPrompt.getResponseText())) {
         continueImport = true;
@@ -5046,12 +5805,12 @@ function dataTransfer(redirect,thursOnly) {
   }
 }
 
-//------------------------------------------------------------------------
 // DATA IMPORTING - Function to import responses from the surveys for Thursday only
 function dataTransferTNF() {
   dataTransfer(null,true);
 }
 
+// UTILITIES
 //------------------------------------------------------------------------
 // SERVICE Function to remove all triggers on project
 function deleteTriggers() {
@@ -5061,7 +5820,105 @@ function deleteTriggers() {
   }
 }
 
-//------------------------------------------------------------------------
+// ADJUST ROWS - Cleans up rows of a sheet by providing the total rows that currently exist with data
+function adjustRows(sheet,rows,verbose){
+  let maxRows = sheet.getMaxRows(); 
+  if (rows == undefined || rows == null) {
+    rows = sheet.getLastRow();
+  }
+  if (rows > 0 && rows > maxRows) {
+    sheet.insertRowsAfter(maxRows,(rows-maxRows));
+    if(verbose) return Logger.log('Added ' + (rows-maxRows) + ' rows');
+  } else if (rows < maxRows && rows != 0){
+    sheet.deleteRows((rows+1), (maxRows-rows));
+    if(verbose) return Logger.log('Removed ' + (maxRows - rows) + ' rows');
+  } else {
+    if(verbose) return Logger.log('Rows not adjusted');
+  }
+}
+
+// ADJUST COLUMNS - Cleans up columns of a sheet by providing the total columns that currently exist with data
+function adjustColumns(sheet,columns,verbose){
+  let maxColumns = sheet.getMaxColumns(); 
+  if (columns == undefined || columns == null) {
+    columns = sheet.getLastColumn();
+  }
+  if (columns > 0 && columns > maxColumns) {
+    sheet.insertColumnsAfter(maxColumns,(columns-maxColumns));
+    if(verbose) return Logger.log('Added ' + (columns-maxColumns) + ' columns');
+  }  else if (columns < maxColumns && columns != 0){
+    sheet.deleteColumns((columns+1), (maxColumns-columns));
+    if(verbose) return Logger.log('Removed ' + (maxColumns - columns) + ' column(s)');
+  } else {
+    if(verbose) return Logger.log('Columns not adjusted');
+  }
+}
+
+// GENERATES HEX GRADIENT - Provide a start and end and a count of values and this function generates a HEX gradient. Midpoint value is optional.
+function hexGradient(start, end, count, midpoint) { // start and end in either 3 or 6 digit hex values, count is total values in array to return
+  if (count < 2 || count.isNaN) {
+    Logger.log('ERROR: Please provide a \'count\' value of 2 or greater');
+    return null;
+  } else {
+    count = Math.ceil(count);
+    if (midpoint == null || midpoint == undefined) {
+      // strip the leading # if it's there
+      start = start.replace(/^\s*#|\s*$/g, '');
+      end = end.replace(/^\s*#|\s*$/g, '');
+
+      // convert 3 char codes --> 6, e.g. `E0F` --> `EE00FF`
+      if(start.length == 3){
+        start = start.replace(/(.)/g, '$1$1');
+      }
+
+      if(end.length == 3){
+        end = end.replace(/(.)/g, '$1$1');
+      }
+
+      let arr = ['#'+start];
+      let tmpRed, tmpGreen, tmpBlue;
+
+      // get colors
+      let startRed = parseInt(start.substr(0, 2), 16),
+          startGreen = parseInt(start.substr(2, 2), 16),
+          startBlue = parseInt(start.substr(4, 2), 16);
+      let endRed = parseInt(end.substr(0, 2), 16),
+          endGreen = parseInt(end.substr(2, 2), 16),
+          endBlue = parseInt(end.substr(4, 2), 16);
+      let stepRed = (endRed-startRed)/(count-1),
+          stepGreen = (endGreen-startGreen)/(count-1),
+          stepBlue = (endBlue-startBlue)/(count-1);
+      
+
+      for (let a = 1; a < count-1; a++) {
+        // calculate the step differential for each color
+        tmpRed = ((stepRed * a) + startRed).toString(16).split('.')[0];
+        tmpGreen = ((stepGreen * a) + startGreen).toString(16).split('.')[0];
+        tmpBlue = ((stepBlue * a) + startBlue).toString(16).split('.')[0];
+        // ensure 2 digits by color
+        if( tmpRed.length == 1 ) tmpRed = '0' + tmpRed;
+        if( tmpGreen.length == 1 ) tmpGreen = '0' + tmpGreen;
+        if( tmpBlue.length == 1 ) tmpBlue = '0' + tmpBlue;
+        arr.push(('#' + tmpRed + tmpGreen + tmpBlue).toUpperCase());
+      }
+      arr.push('#'+end);
+      return arr;
+    } else {
+      count = Math.ceil(count);
+      if (count % 2 == 0) {
+        count++;
+        // Logger.log('Even number provided with midpoint, increasing count to ' + count);
+      }
+      let half = Math.ceil(count/2);
+      let arr = hexGradient(start,midpoint,half);
+      arr.pop();
+      let arr2 = hexGradient(midpoint,end,half);
+      arr = arr.concat(arr2);
+      return arr;
+    }
+  }
+}
+
 // RESET Function to reset and create menu for runFirst
 function resetSpreadsheet() {
   const ui = SpreadsheetApp.getUi();
@@ -5069,27 +5926,27 @@ function resetSpreadsheet() {
   let prompt = ui.alert('Reset spreadsheet and delete all data?', ui.ButtonSet.YES_NO);
   if (prompt == 'YES') {
     
-    var promptTwo = ui.alert('Are you sure? This would be very difficult to recover from.',ui.ButtonSet.YES_NO);
+    let promptTwo = ui.alert('Are you sure? This would be very difficult to recover from.',ui.ButtonSet.YES_NO);
     if (promptTwo == 'YES') {
-      var ranges = ss.getNamedRanges();
-      for (var a = 0; a < ranges.length; a++){
+      let ranges = ss.getNamedRanges();
+      for (let a = 0; a < ranges.length; a++){
         ranges[a].remove();
       }
-      var sheets = ss.getSheets();
-      var baseSheet = ss.insertSheet();
-      for (a = 0; a < sheets.length; a++){
+      let sheets = ss.getSheets();
+      let baseSheet = ss.insertSheet();
+      for (let a = 0; a < sheets.length; a++){
         ss.deleteSheet(sheets[a]);
       }
-      var protections = ss.getProtections(SpreadsheetApp.ProtectionType.SHEET);
-      for (a = 0; a < protections.length; a++){
+      let protections = ss.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+      for (let a = 0; a < protections.length; a++){
         protections[a].remove();
       }
       protections = ss.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-      for (a = 0; a < protections.length; a++){
+      for (let a = 0; a < protections.length; a++){
         protections[a].remove();
       }      
       baseSheet.setName('Sheet1');
-      var menu = SpreadsheetApp.getUi().createMenu('Setup');
+      let menu = SpreadsheetApp.getUi().createMenu('Setup');
       menu.addItem('Run First','runFirst')
       .addToUi();
     } else {
