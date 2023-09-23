@@ -2802,7 +2802,7 @@ function weeklySheetCreate(next,restore) {
       all.push(a);
       missing.push(a);
     }
-    for (let a = 1; a < sheets.length; a++) {
+    for (let a = 0; a < sheets.length; a++) {
       if (regex.test(sheets[a].getSheetName())) {
         let week = parseInt(sheets[a].getName().replace(year+'_',''));
         all[week-1] = '';
