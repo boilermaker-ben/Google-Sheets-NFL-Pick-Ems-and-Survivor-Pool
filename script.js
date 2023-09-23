@@ -2379,7 +2379,8 @@ function weeklySheet(year,week,members,dataRestore) {
         .setBackground(gradient[b])
         .setRanges([range]);
       if (formatObj[a]['name'].includes('incorrect')) {
-        rule.setFontColor('#999999'); // Dark gray text for the incorrect picks
+        rule.setFontColor('#999999')  // Dark gray text for the incorrect picks
+          .setStrikethrough(true); // Strikethrough for incorrect picks
       }
       rule.build();
       
