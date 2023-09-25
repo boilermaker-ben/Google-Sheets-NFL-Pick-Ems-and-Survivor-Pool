@@ -4619,6 +4619,19 @@ function formCreate(auto,week,year,name) {
 
   // Establish variables if not passed into function
   const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
+  const commentsInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
+  let survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
+  let survivorStart = ss.getRangeByName('SURVIVOR_START').getValue();
+  let survivorDone = ss.getRangeByName('SURVIVOR_DONE').getValue();
+  
+  // These are new configuration variables added since version 2.3, they have error checking if no values are found in the named ranges
+  let tiebreaker = true;
+  try{
+    tiebreaker = ss.getRangeByName('TIEBREAKER_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the tiebreaker disable feature configured, add a named range "TIEBREAKER_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
   let tnfInclude = true;
   try{
     tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
@@ -4626,10 +4639,21 @@ function formCreate(auto,week,year,name) {
   catch (err) {
     Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
   }
-  const commentsInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
-  let survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
-  let survivorStart = ss.getRangeByName('SURVIVOR_START').getValue();
-  let survivorDone = ss.getRangeByName('SURVIVOR_DONE').getValue();
+  let bonus = false;
+  try{
+    bonus = ss.getRangeByName('BONUS_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the bonus feature configured, add a named range "BONUS_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
+  let mnfDouble = false;
+  try{
+    mnfDouble = ss.getRangeByName('MNF_DOUBLE').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the bonus feature configured, add a named range "BONUS_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
+
   let form, formId;
 
   // Begin creation of new form if either pickems or an active survivor pool is present
@@ -4813,7 +4837,9 @@ function formCreate(auto,week,year,name) {
               teams.push(data[a][6]);
               teams.push(data[a][7]);
               item = form.addMultipleChoiceItem();
-              if ( data[a][2] == 1 ) {
+              if ( data[a][2] == 1 && bonus && mnfDouble) {
+                day = 'DOUBLE POINTS Monday Night Football';
+              } else if ( data[a][2] == 1 ) {
                 day = 'Monday Night Football';
               } else {
                 day = data[a][5];
@@ -4840,19 +4866,21 @@ function formCreate(auto,week,year,name) {
           }
           ss.toast('Created Form questions for all ' + (teams.length/2) + ' NFL games in week ' + week);
           teams.sort();
-          
-          let numberValidation = FormApp.createTextValidation()
-            .setHelpText('Input must be a whole number between 0 and 100')
-            .requireWholeNumber()
-            .requireNumberBetween(0,120)
-            .build();
-          
-          // Tiebreaker question
-          item = form.addTextItem();
-          item.setTitle('Tiebreaker')
-            .setHelpText('Total Points combined between ' + finalGame)
-            .setRequired(true)
-            .setValidation(numberValidation);
+
+          if (tiebreaker) {
+            let numberValidation = FormApp.createTextValidation()
+              .setHelpText('Input must be a whole number between 0 and 100')
+              .requireWholeNumber()
+              .requireNumberBetween(0,120)
+              .build();
+            
+            // Tiebreaker question
+            item = form.addTextItem();
+            item.setTitle('Tiebreaker')
+              .setHelpText('Total Points combined between ' + finalGame)
+              .setRequired(true)
+              .setValidation(numberValidation);
+          }
           if(commentsInclude == true && pickemsInclude == true) {
             item = form.addTextItem();
             item.setTitle('Comments')
