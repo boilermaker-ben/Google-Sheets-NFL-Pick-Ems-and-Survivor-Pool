@@ -4147,7 +4147,11 @@ function overallMainFormulas(sheet,totalMembers,weeks,year,str,avgRow) {
   for (let a = 1; a <= weeks; a++ ) {
     b = 1;
     for (b ; b <= totalMembers; b++) {
-      sheet.getRange(b+1,a+2).setFormula('=iferror(arrayformula(vlookup(R[0]C1,{NAMES_'+year+'_'+a+','+str+'_'+year+'_'+a+'},2,false)))');
+      if (str == 'TOT') {
+        sheet.getRange(b+1,a+2).setFormula('=iferror(if(or(iserror(vlookup($A'+(b+1)+',NAMES_'+year+'_'+a+',1,false)),counta(filter(NFL_'+year+'_PICKS_'+a+',NAMES_'+year+'_'+a+'=$A'+(b+1)+'))=0),,arrayformula(countifs(filter(NFL_'+year+'_PICKS_'+a+',NAMES_'+year+'_'+a+'=$A'+(b+1)+')=NFL_'+year+'_PICKEM_OUTCOMES_'+a+',true,filter(NFL_'+year+'_PICKS_'+a+',NAMES_'+year+'_'+a+'=$A'+(b+1)+'),\"<>\"))),)');
+      } else {
+        sheet.getRange(b+1,a+2).setFormula('=iferror(arrayformula(vlookup(R[0]C1,{NAMES_'+year+'_'+a+','+str+'_'+year+'_'+a+'},2,false)))');
+      }
       if (sheet.getSheetName() == 'OVERALL_PCT') {
         sheet.getRange(b+1,a+2).setNumberFormat("##.#%");
       } else {
