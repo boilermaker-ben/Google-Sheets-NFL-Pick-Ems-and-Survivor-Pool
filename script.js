@@ -1555,13 +1555,23 @@ function nflOutcomesSheetUpdate(year,week,equations) {
   if (data == null) {
     fetchNFL();
   }
+
+  let tnfInclude = true;
+  try{
+    tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('Your version doesn\'t have the TNF feature configured, add a named range "TNF_PRESENT" somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+  }
+
   let days = [], games = [];
   for (let a = 0; a < data.length; a++) {
-    if (data[a][0] == week) {
+    if (data[a][0] == week && ((tnfInclude && data[a][2] == -3) || data[a][2] != -3)) {
       days.push(data[a][2]+3); // Numeric day used for gradient application (-3 is Thursday, 1 is Monday);
       games.push([data[a][6],data[a][7]]);
     }
   }
+  
   if (equations != true) {
     
     // Clears data validation and notes
