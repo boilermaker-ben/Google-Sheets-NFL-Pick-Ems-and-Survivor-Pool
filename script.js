@@ -2084,13 +2084,9 @@ function weeklySheet(year,week,members,dataRestore) {
   sheet.getRange(rows,3,1,1).setFormulaR1C1('=iferror(if(counta(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+')>10,"HOME|"&round(100*(sum(arrayformula(if(regexextract(R1C5:R1C'+finalMatchCol+',"[A-Z]{2,3}$")=R1C5:R'+(totalMembers+2)+'C'+finalMatchCol+',1,0)))/counta(R3C5:R'+(totalMembers+2)+'C'+finalMatchCol+')),1)&"%","HOME"),"HOME")');
   sheet.getRange(rows,4,1,1).setFormulaR1C1('=iferror(if(counta(R2C[1]:R2C['+(finalMatchCol-4)+'])>2,average(R2C[0]:R'+(totalMembers+2)+'C[0]),))');
 
-  // ALTERNATING COLORS / BANDING
+  // ALTERNATING COLORS REMOVAL
   let range = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn());
   range.getBandings().forEach(banding => banding.remove());
-
-  sheet.getRange(3,1,totalMembers,finalCol).applyRowBanding(SpreadsheetApp.BandingTheme)
-    .setHeaderRowColor(null)
-    .setSecondColumnColor('#F0F0F0');
 
   // Setting conditional formatting rules
   sheet.clearConditionalFormatRules();    
