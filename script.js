@@ -1,7 +1,7 @@
 /** GOOGLE SHEETS PICK 'EMS & SURVIVOR
  * League Creator & Management Platform Tool
  * v2.5
- * 9/26/2023
+ * 10/04/2023
  * 
  * Created by Ben Powers
  * ben.powers.creative@gmail.com
@@ -458,12 +458,12 @@ function createMenu(lock,trigger) {
     menu.addSubMenu(ui.createMenu('Bonus')
       .addItem('Hide Game Bonus Value Row','bonusHide')
       .addItem('MNF Double Value Disable','bonusDoubleMNFDisable')
-      .addItem('Random Game of the Week','bonusRandomGame'));
+      .addItem('Random Game of the Week','bonusRandomGameSet'));
   } else {
     menu.addSubMenu(ui.createMenu('Bonus')
       .addItem('Hide Game Bonus Value Row','bonusHide')
       .addItem('MNF Double Value Enable','bonusDoubleMNFEnable')
-      .addItem('Random Game of the Week','bonusRandomGame'));
+      .addItem('Random Game of the Week','bonusRandomGameSet'));
   }
   menu.addSeparator();
   if (!lock) {
@@ -1149,6 +1149,33 @@ function fetchNFL() {
   ss.toast('Imported all NFL schedule data');
 }
 
+// NFL GAMES - output by week input and in array format: [date,day,hour,minute,dayName,awayTeam,homeTeam,awayTeamLocation,awayTeamName,homeTeamLocation,homeTeamName]
+function fetchNFLGames(week) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const year = fetchYear();
+  if (week == null) {
+    week = fetchWeek();
+  }
+  try {
+    const nfl = ss.getRangeByName('NFL_' + year).getValues();
+    let games = [];
+    for (let a = 0; a < nfl.length; a++) {
+      if (nfl[a][0] == week) {
+        games.push(nfl[a].slice(1));
+      }
+    }
+    return games;
+  }
+  catch (err) {
+    let text = 'Attempted to fetch NFL matches for week ' + week + ' but no NFL data exists, fetching now...';
+    Logger.log(text);
+    ss.toast(text);
+    fetchNFL();
+    fetchNFLGames(week);
+    return games;
+  }
+}
+
 // NFL ACTIVE WEEK SCORES - script to check and pull down any completed matches and record them to the weekly sheet
 function recordNFLWeeklyScores(){
   
@@ -1165,6 +1192,7 @@ function recordNFLWeeklyScores(){
 
   const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
   const survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
+  const tiebreakerInclude = ss.getRangeByName('TIEBREAKER_PRESENT').getValue();
   const year = fetchYear();
   let outcomesRecorded = [];
   let range;
@@ -1187,14 +1215,19 @@ function recordNFLWeeklyScores(){
   }
   if (alert == 'OK') {
     if (pickemsInclude == true) {
-      let sheet,matchupRange,matchups,outcomeRange,outcomesRecorded,writeRange;
+      let sheet,matchupRange,matchups,cols,outcomeRange,outcomesRecorded,writeRange;
       try {
         sheet = ss.getSheetByName(year+'_'+weekMask);
         matchupRange = ss.getRangeByName('NFL_'+year+'_'+week);
         matchups = matchupRange.getValues().flat();
         outcomeRange = ss.getRangeByName('NFL_'+year+'_PICKEM_OUTCOMES_'+week);
         outcomesRecorded = outcomeRange.getValues().flat();
-        writeRange = sheet.getRange(outcomeRange.getRow(),outcomeRange.getColumn(),1,matchups.length+1);
+        if (tiebreakerInclude) {
+          cols = matchups.length+1; // Adds one more column for tiebreaker value
+        } else {
+          cols = matchups.length;
+        }
+        writeRange = sheet.getRange(outcomeRange.getRow(),outcomeRange.getColumn(),1,cols);
       }
       catch (err) {
         Logger.log(err.stack);
@@ -1237,19 +1270,21 @@ function recordNFLWeeklyScores(){
           Logger.log('No game data for ' + away + '@' + home);
           arr.push(outcomesRecorded[a]);
         }
-        try {
-          if (a == (matchups.length - 1)) {
-            if (outcome.length <= 0) {
-              throw new Error('No tiebreaker yet');
+        if (tiebreakerInclude) {
+          try {
+            if (a == (matchups.length - 1)) {
+              if (outcome.length <= 0) {
+                throw new Error('No tiebreaker yet');
+              }
+              arr.push(outcome[3]); // Appends tiebreaker to end of array
             }
-            arr.push(outcome[3]); // Appends tiebreaker to end of array
           }
-        }
-        catch (err) {
-          Logger.log('No tiebreaker yet');
-          let tiebreakerCell = ss.getRangeByName('NFL_'+year+'_TIEBREAKER_'+week);
-          let tiebreaker = sheet.getRange(tiebreakerCell.getRow()-1,tiebreakerCell.getColumn()).getValue();
-          arr.push(tiebreaker);
+          catch (err) {
+            Logger.log('No tiebreaker yet');
+            let tiebreakerCell = ss.getRangeByName('NFL_'+year+'_TIEBREAKER_'+week);
+            let tiebreaker = sheet.getRange(tiebreakerCell.getRow()-1,tiebreakerCell.getColumn()).getValue();
+            arr.push(tiebreaker);
+          }
         }
       }
       writeRange.setValues([arr]);
@@ -1555,7 +1590,6 @@ function nflOutcomesSheetUpdate(year,week,equations) {
   if (data == null) {
     fetchNFL();
   }
-
   let tnfInclude = true;
   try{
     tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
@@ -1571,7 +1605,6 @@ function nflOutcomesSheetUpdate(year,week,equations) {
       games.push([data[a][6],data[a][7]]);
     }
   }
-  
   if (equations != true) {
     
     // Clears data validation and notes
@@ -1640,10 +1673,14 @@ function nflOutcomesSheetUpdate(year,week,equations) {
     const targetRange = ss.getRangeByName('NFL_'+year+'_OUTCOMES_'+week);
     let row = sourceRange.getRow();
     let data = targetRange.getValues().flat();
+    let regex = new RegExp(/^[A-Z]{2,3}/);
     for (let a = 1; a <= sourceRange.getNumColumns(); a++) {
-      if (data[a-1] == null || data[a-1] == '') {
+      if (!regex.test(data[a-1])) {
+        Logger.log('Found nothing matching in cell row ' + (a + 2));
         let formula = '=\''+weeklySheetName+'\'!'+sourceSheet.getRange(row,sourceRange.getColumn()+(a-1)).getA1Notation();
         targetSheet.getRange(targetRange.getRow()+(a-1),targetRange.getColumn()).setFormula(formula);        
+      } else {
+        Logger.log('Found matching value of ' + data[a-1] + ' in cell row ' + (a + 2));
       }
     }
   } else if (sourceSheet == null) {
@@ -1754,6 +1791,9 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,t
     ss.setNamedRange(arrayNamedRanges[a],sheet.getRange(arrayNamedRanges.indexOf(arrayNamedRanges[a])+1,2));
   }
 
+  // Puts formula in survivor done cell (likely needs to be replaced to trigger recalculation later)
+  survivorDoneFormula(ss);
+
   // Rules for dropdowns on Config sheet
   let rule = SpreadsheetApp.newDataValidation().requireValueInList(weeksArr, true).build();
   sheet.getRange(2,2).setDataValidation(rule);
@@ -1784,7 +1824,7 @@ function configSheet(name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclude,t
   sheet.setConditionalFormatRules(formats);
 
   // Formats sheet
-  sheet.setColumnWidths(1,1,140);
+  sheet.setColumnWidths(1,1,150);
   sheet.setColumnWidths(2,1,60);
   sheet.setColumnWidths(3,2,120);
   sheet.getRange(1,2,sheet.getMaxRows(),1).clearNote();
@@ -1855,10 +1895,6 @@ function memberSheet(members) {
   }
   memberList();
   sheet.setColumnWidth(1,120);
-  
-  // Puts formula in survivor done cell (likely needs to be replaced to trigger recalculation later)
-  survivorDoneFormula(ss);
-
   sheet.hideSheet();
   return sheet;
 }
@@ -2017,7 +2053,7 @@ function weeklySheet(year,week,members,dataRestore) {
     }
     catch (err) {
       Logger.log('No previous names named range found, attempting to find data rows by column values');
-      regex = new RegExp('NFL MATCHES');
+      regex = new RegExp(/NFL\ MATCHES/);
       if (regex.test(firstCol)) {
         for (let a = 0; a < firstCol.length; a++) {
           if (regex.test(firstCol[a])) {
@@ -2049,7 +2085,7 @@ function weeklySheet(year,week,members,dataRestore) {
     }
     catch (err) {
       Logger.log('No previous matchup named range found, attempting to find by header index');
-      regex = new RegExp("[A-Z]{2,3}@[A-Z]{2,3}");
+      regex = new RegExp(/[A-Z]{2,3}@[A-Z]{2,3}/);
       for (let a = 0; a < previousHeaders.length; a++) {
         if (regex.test(previousHeaders[a].replace(/\s/g,''))) {
           if (matchupStartCol == undefined) {
@@ -2068,7 +2104,7 @@ function weeklySheet(year,week,members,dataRestore) {
     }
 
     // Check if data exists, then set dataRestore to false if no data present
-    regex = new RegExp("[A-Z]{2,3}");
+    regex = new RegExp(/^[A-Z]{2,3}/);
     if (!regex.test(previousData) || noMatchups) {
       dataRestore = false;
       ss.toast('Intended to restore data, but no data found. If there was any information present. please undo immediately if you want to retain information on sheet ' + sheetName);
@@ -2130,8 +2166,7 @@ function weeklySheet(year,week,members,dataRestore) {
             Logger.log('No previous comment data found to retain');
           }
         }
-      }
-      
+      }      
       
       // Get bonus values if present, use row lookup if fails
       try {
@@ -2191,7 +2226,7 @@ function weeklySheet(year,week,members,dataRestore) {
       if ( previousBonus != null && (previousBonus[matches-1] >= 1 && previousBonus[matches-1] <= 3)) {
         bonuses.push(previousBonus[matches-1]);
       } else {
-        if ( day == 1 && bonus && mnfDouble) {
+        if (bonus && day == 1 && mnfDouble) {
           bonuses.push(2);
         } else {
           bonuses.push(1);
@@ -2389,8 +2424,7 @@ function weeklySheet(year,week,members,dataRestore) {
         .setBackground(gradient[b])
         .setRanges([range]);
       if (formatObj[a]['name'].includes('incorrect')) {
-        rule.setFontColor('#999999')  // Dark gray text for the incorrect picks
-          .setStrikethrough(true); // Strikethrough for incorrect picks
+        rule.setFontColor('#999999'); // Dark gray text for the incorrect picks
       }
       rule.build();
       
@@ -2807,7 +2841,7 @@ function weeklySheetCreate(next,restore) {
   
   if (next == null) {
     let all = [], next, weekString, missing = [], sheets = ss.getSheets();
-    let regex = new RegExp(year+'_[0-9]{2}'); // sheetName = year + '_0' + week (needs to be updated when new weekly naming changes)
+    let regex = new RegExp('^'+year+'_[0-9]{2}'); // sheetName = year + '_0' + week (needs to be updated when new weekly naming changes)
     for (let a = 1; a <= weeks; a++) {
       all.push(a);
       missing.push(a);
@@ -2858,7 +2892,7 @@ function weeklySheetCreate(next,restore) {
       restore = false;
     }
     let confirm, other = 0;
-    regex = new RegExp('[0-9]{1,2}');
+    regex = new RegExp(/^[0-9]{1,2}/);
     let invalid = 'That week was invalid, please try again:';
     if (ask) {
       prompt = ui.prompt('Which sheet would you like to create or recreate?\r\n\r\n' + weekString, ui.ButtonSet.OK_CANCEL);
@@ -2944,18 +2978,12 @@ function overallSheet(year,weeks,members) {
   maxCols = sheet.getMaxColumns();
   sheet.getRange(1,1).setValue('CORRECT');
   sheet.getRange(1,2).setValue('TOTAL');
-  sheet.getRange(rows,1).setValue('AVERAGES');
+  sheet.getRange(2,1).setValue('AVERAGES');
 
-  let mask;
   for ( let a = 0; a < weeks; a++ ) {
     sheet.getRange(1,a+3).setValue(a+1);
     sheet.setColumnWidth(a+3,30);
-    if (a+1 < 10 ) { 
-      mask = '0' + (a+1);
-    } else {
-      mask = (a+1);
-    }
-    sheet.getRange(2,a+3).setFormula('=iferror(arrayformula(TOT_'+year+'_'+mask+'))');
+    sheet.getRange(2,a+3).setFormula('=iferror(arrayformula(countif(filter(NFL_'+year+'_PICKS_'+(a+1)+',NAMES_'+year+'_'+(a+1)+'=$A2)=NFL_'+year+'_PICKEM_OUTCOMES_'+(a+1)+',true)),)');
   }
   
   let range = sheet.getRange(1,1,rows,maxCols);
@@ -4391,125 +4419,214 @@ function bonusDoubleMNFDisable() {
   bonusDoubleMNF(false);
 }
 
-// GAME OF THE WEEK - selects one random game for 2x multiplier to be applied
-function bonusRandomGame() {
+// GAME OF THE WEEK SHEET FUNCTION - selects one random game for 2x multiplier to be applied
+function bonusRandomGameSet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ui = SpreadsheetApp.getUi();
-  let mnfDouble, bonusRange, text;
+  let tnf = true, bonusRange, mnfDouble = false, text;
+  const year = fetchYear();
+  const week = fetchWeek();
+  let sheet, sheetExisted = true;
+  try { 
+    ss.getRangeByName('BONUS_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('No \'BONUS_PRESENT\' named range');
+    ui.alert('BONUS PRESENT NOT SET\r\n\r\nNo bonus present range established for inclusion/exclusion of bonus game weighting, please run the enable/disable bonus function and try this function again after that has been set', ui.ButtonSet.OK);
+    throw new Error('Canceled due to no bonus feature');
+  }
+  try { 
+    tnf = ss.getRangeByName('TNF_PRESENT').getValue();
+  }
+  catch (err) {
+    Logger.log('No \'TNF_PRESENT\' named range, assuming true');
+    ui.alert('THURSDAY NIGHT FOOTBALL EXCLUSION NOT SET\r\n\r\nNo Thursday present range established for inclusion/exclusion of Thursday\'s games', ui.ButtonSet.OK);
+  }
   try { 
     mnfDouble = ss.getRangeByName('MNF_DOUBLE').getValue();
   }
   catch (err) {
-    Logger.log('No \'MNF_DOUBLE\' named range');
-    ui.alert('MNF DOUBLE NOT SET\r\n\r\nNo MNF Double range established for inclusion/exclusion of MNF games, please run the enable/disable MNF Double function and try this one again after that has been set', ui.ButtonSet.OK);
-    throw new Error('Canceled due to no MNF Double value');
-  }  
-  const year = fetchYear();
-  const week = fetchWeek();
+    Logger.log('No \'MNF_DOUBLE\' named range, assuming \'false\' for double MNF and proceeding.');
+  }
+  try {
+    let weekMask = week < 10 ? '0' + week : week;
+    sheet = ss.getSheetByName(year + '_' + weekMask);
+  } catch (err) {
+    Logger.log('No sheet for week ' + week);
+    let prompt = ui.alert('NO SHEET\r\n\r\nThe week ' + week + ' sheet does not exist. Create a sheet now for week ' + week + '?\r\n\r\n(Selecting \'Cancel\' will exit and no game will be selected)', ui.ButtonSet.OK_CANCEL);
+    if (prompt = ui.Button.OK) {
+      sheet = weeklySheet(year,week,memberList(),false);
+      sheetExisted = false;
+    } else {
+      throw new Error('Exited when new sheet creation was declined');
+    }
+  }
   try {
     bonusRange = ss.getRangeByName('NFL_'+year+'_BONUS_'+week);
   }
   catch (err) {
     Logger.log('No \'BONUS\' named range for week ' + week);
-    ui.alert('NO BONUS\r\n\r\nThe week ' + week + ' sheet does not have a bonus range to modify, please recreate the week ' + week + ' sheet before trying to randomly mark the Game of the Week', ui.ButtonSet.OK);
-    throw new Error('Canceled due to no BONUS row for week ' + week);
-  }
-  let mnf, mnfRange, bonusValues = bonusRange.getValues().flat();
-  
-  try {
-    mnfRange = ss.getRangeByName('NFL_'+year+'_MNF_'+week);
-    bonusValues.splice(bonusValues.length-mnfRange.getNumColumns(),mnfRange.getNumColumns());
-    bonusRange = bonusRange.getSheet().getRange(bonusRange.getRow(),bonusRange.getColumn(),1,bonusRange.getNumColumns()-mnfRange.getNumColumns());
-    if (mnfRange.getValues().length > 0) {
-      mnf = true;
+    ui.alert('NO BONUS\r\n\r\nThe week ' + week + ' sheet lacks the bonus game feature. Would you like to recreate the week ' + week + ' sheet now?\r\n\r\n(Selecting \'Cancel\' will exit and no game will be selected)', ui.ButtonSet.OK_CANCEL);
+    if (prompt == ui.Button.OK) {
+      sheet = weeklySheet(year,week,memberList(),false);
+      sheetExisted = false;
     } else {
-      mnf = false;
+      throw new Error('Exited when new sheet creation was declined');
     }
   }
-  catch (err) {
-    Logger.log('No MNF range for week ' + week + '. Including all games in randomization.');
-    mnf = false;
-  }
-  for (let a = 0; a < bonusValues.length; a++) {
-    if (bonusValues[a] > 1) {
-      text = 'BONUS GAME ALREADY MARKED\r\n\r\nYou already have one or more games marked for 2x or greater weighting.\r\n\r\nMark all ';
-      if (mnfDouble && mnf) {
-        text = text.concat('non-MNF games\' weighting to 1 and try again');
-      } else {
-        text = text.concat('games\' weighting to 1 and try again');
-      }
-      ui.alert(text,ui.ButtonSet.OK);
-      throw new Error('Other games marked as bonus prior to running random Game of the Week function');
-    }
-  }
+  bonusRange = ss.getRangeByName('NFL_'+year+'_BONUS_'+week);
 
-  text = 'GAME OF THE WEEK\r\n\r\nWould you like to randomly select one game this week to count as double?\r\n\r\nAny MNF games will be ';
-  if (mnfDouble == true) {
-    text = text.concat('excluded since you have the MNF Double feature enabled');
-  } else {
-    text = text.concat('included since you have the MNF Double feature disabled');
-  }
-  let randomPrompt = ui.alert(text,ui.ButtonSet.YES_NO);
-  if (randomPrompt == ui.Button.YES) {
-    let gameOfTheWeekIndex = getRandomInt(0,bonusValues.length-1);
-    let matchupNames = ss.getRangeByName('NFL_'+year+'_'+week).getValues().flat();
-    
-    text = 'For week ' + week + ', your Game of the Week has been randomly selected as:\r\n\r\n';
+  let mnf = false, mnfRange, bonusValues = bonusRange.getValues().flat();
+
+  if (mnfDouble) {
     try {
-      let regex = new RegExp('[A-Z]{2,3}','g');  
-      let matchup = matchupNames[gameOfTheWeekIndex].match(regex);
-      text = text.concat(matchup[0] + ' at ' + matchup[1] + '\r\n\r\nWould you like to mark it as such?');
-      let verify = ui.alert(text,ui.ButtonSet.OK_CANCEL);
-      if (verify == ui.Button.OK) {
-        bonusValues[gameOfTheWeekIndex] = 2;
-        bonusRange.setValues([bonusValues]);
-      } else {
-        ss.toast('Canceled setting Game of the Week');
+      mnfRange = ss.getRangeByName('NFL_'+year+'_MNF_'+week);
+      bonusValues.splice(bonusValues.length-mnfRange.getNumColumns(),mnfRange.getNumColumns());
+      bonusRange = sheet.getRange(bonusRange.getRow(),bonusRange.getColumn(),1,bonusRange.getNumColumns()-mnfRange.getNumColumns());
+      if (mnfRange.getValues().length > 0) {
+        mnf = true;
       }
     }
     catch (err) {
-      ss.toast('Error fetching matches or selecting Game of the Week\r\n\r\nError: ' + err.message);
-      Logger.log('Error fetching matches or selecting Game of the Week\r\n\r\nError: ' + err.message);
+      Logger.log('No MNF range for week ' + week + '. Including all games in randomization.');
+    }
+  }  
+
+  if (sheetExisted) {
+    for (let a = 0; a < bonusValues.length; a++) {
+      if (bonusValues[a] > 1) {
+        text = 'BONUS GAME ALREADY MARKED\r\n\r\nYou already have one or more games marked for 2x or greater weighting.\r\n\r\nMark all ';
+        if (mnfDouble && mnf) {
+          text = text.concat('non-MNF games\' weighting to 1 and try again');
+        } else {
+          text = text.concat('games\' weighting to 1 and try again');
+        }
+        ui.alert(text,ui.ButtonSet.OK);
+        throw new Error('Other games marked as bonus prior to running random Game of the Week function');
+      }
     }
   }
-  function getRandomInt(min, max) {
+
+  text = 'GAME OF THE WEEK\r\n\r\nWould you like to randomly select one game this week to count as double?';
+  if (mnfDouble == true) {
+    text = text.concat('\r\n\r\nAny MNF games will be excluded since you have the MNF Double feature enabled');
+  }
+  let gameOfTheWeek;
+  let randomPrompt = ui.alert(text,ui.ButtonSet.YES_NO);
+  if (randomPrompt == ui.Button.YES) {
+    gameOfTheWeek = bonusRandomGame(week,tnf,mnfDouble);
+    let matchupNames = ss.getRangeByName('NFL_'+year+'_'+week).getValues().flat();
+    let regex = new RegExp(/[A-Z]{2,3}/,'g');
+    let matchupRegex = [];
+    matchupNames.forEach(a => matchupRegex.push(a.match(regex)[0]+ '@' + a.match(regex)[1]));
+    bonusValues[matchupRegex.indexOf(gameOfTheWeek)] = 2;
+    bonusRange.setValues([bonusValues]);
+  }
+
+  let formId = ss.getRangeByName('FORM_WEEK_'+week).getValue();
+  try {
+    let form = FormApp.openById(formId);
+    let prompt = ui.alert('FORM EXISTS\r\n\r\nYou\'ve already created a form for week ' + week + ', would you like to designate the Game of the Week on the Form?',ui.ButtonSet.YES_NO);
+    if (prompt == ui.Button.YES) {
+      let form = FormApp.openById(formId);
+      let questions = form.getItems(FormApp.ItemType.MULTIPLE_CHOICE);
+      for (let a = 0; a < questions.length; a++) {
+        try{
+          let choices = questions[a].asMultipleChoiceItem().getChoices();
+          let matchup = choices[0].getValue() + '@' + choices[1].getValue();
+          if (matchup == gameOfTheWeek) {
+            questions[a].setTitle('GAME OF THE WEEK (Double Points)\n' + questions[a].getTitle());
+            break;
+          }
+        }
+        catch (err) {
+          Logger.log('Issue with getting choices for question with title ' + questions[a].getTitle() + ' or setting the title.');
+        }
+      }
+    }
+  }
+  catch (err) {
+    Logger.log('No form exists for week ' + week + ' or there was an error getting the questions for the form.'); 
+  }
+}
+
+// GAME OF THE WEEK SELECTION - selects one random game for 2x multiplier to be applied
+function bonusRandomGame(week,tnf,mnfDouble) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ui = SpreadsheetApp.getUi();
+  if (week == null) {
+    week = fetchWeek();
+  }
+
+  let games = fetchNFLGames(week);
+  
+  let abbrevs = [];
+  let teams = [];
+  for (let a = games.length - 1; a >= 0; a--) {
+    if ((games[a][1] == 1 && mnfDouble) || (games[a][1] == -3 && !tnf)) {
+      games.splice(a,1);
+    } else {
+      abbrevs.push(games[a][5] + '@' + games[a][6])
+      teams.push(games[a][7] + ' ' + games[a][8] + ' at ' + games[a][9] + ' ' + games[a][10])
+    }
+  }
+
+  let gameOfTheWeekIndex = getRandomInt(0,abbrevs.length-1);
+
+  text = 'For week ' + week + ', your Game of the Week has been randomly selected as:\r\n\r\n';
+  try {
+    let gameOfTheWeek = abbrevs[gameOfTheWeekIndex];
+    text = text.concat(teams[gameOfTheWeekIndex] + '\r\n\r\nWould you like to mark it as such?');
+    let verify = ui.alert(text,ui.ButtonSet.OK_CANCEL);
+    if (verify == ui.Button.OK) {
+      return gameOfTheWeek;
+    } else {
+      ss.toast('Canceled Game of the Week selection');
+    }
+  }
+  catch (err) {
+    ss.toast('Error fetching matches or selecting Game of the Week\r\n\r\nError:\r\n' + err.message);
+    Logger.log('Error fetching matches or selecting Game of the Week\r\n\r\nError:\r\n' + err.message);
+  }
+}
+
+// RANDOM - random integer function for selecting Game of the Week
+function getRandomInt(min, max) {
       min = Math.ceil(min);
       max = Math.floor(max);
       return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
 }
 
 // FORM TOOLS
 //------------------------------------------------------------------------
-// CREATE BLANK FORM OR FETCH EXISTING - Creates a form from a template or locates an existing form
-function formFetch(name,year,week,reset) {
-  // Template form for creating new forms
-  let id = '12fWFNFDbH5evyoSP8FdUUi6B3ZlZuGt0IWei-7IYuq0';
-
-  let ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  if (week == null) {
-    week = ss.getRangeByName('WEEK').getValue();
-  }
-  if (week == null) {
-    week = fetchWeek();
-  }
-  if (year == null) {
-    year = ss.getRangeByName('YEAR').getValue();
-  }
-  if (year == null) {
-    year = fetchYear();
-  }
+// FORM EXISTING CHECKS - allows for two different systems for checking the existence of a form (spreadsheet ID provided or storage checking)
+function formExistingCheck(week,year,source,name) {
   
-  let current = ss.getRangeByName('FORM_WEEK_'+week).getValue();
-  let form;
+  // Checking for form by ID provided in spreadsheet "CONFIG" page
+  if (source == 'ss' || source == null) {
+    let range = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('FORM_WEEK_'+week);
+    let current = range.getValue();
+    if (current != '') {
+      Logger.log('Checking for form by using ID provided in spreadsheet');
+      if(formNoResponses(current,week,source)) {
+        range.getSheet().getRange(range.getRow(),range.getColumn(),1,3).setValue(''); // Sets the row related to the existing spreadsheet to blanks for repopulating with new form info
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return true;
+    }  
 
-  if (current == '' || current == null || reset == true) {
-    // Preliminary checks of folder for storing form files
+  // Checking Google Drive for folder for season and any matching forms by name
+  } else if (source == 'drive') {
+
     let folder = null;
+    if (name == null || name == '') {
+      name = 'NFL Pick \’Ems';
+    }
     let folderName = year + ' ' + name + ' Forms';
     let folders = DriveApp.getFoldersByName(folderName);
-    let existingForm;
     while (folders.hasNext()) {
       let current = folders.next();
       if(folderName == current.getName()) {         
@@ -4518,97 +4635,207 @@ function formFetch(name,year,week,reset) {
     }
     try { 
       folder.getName();
-    } catch (err) {
-      Logger.log("No " + name + " folder created for " + year + ", creating one now");
-      folder = DriveApp.createFolder(year + " " + name + " Forms");
+    } 
+    catch (err) {
+      Logger.log('No ' + name + ' folder created for ' + year + ', creating one now');
+      folder = DriveApp.createFolder(year + " " + name + ' Forms');
     }
-    
-    // Preliminary check for existing form for specified week
-    let formName = 'NFL Pick \’Ems - Week ' + week + ' - ' + year;
 
-    if (name != null && name != '') {
-      formName = name + ' - Week ' + week + ' - ' + year;
-    }
+    let formName = name + ' - Week ' + week + ' - ' + year;
     let files = folder.getFilesByName(formName); 
+    let matches = [];
     while (files.hasNext()) {
       let current = files.next();
       if(formName == current.getName()) {         
-        form = current;
+        matches.push(current);
       }
     }
-    try {
-      Logger.log('Checking for form by using name check');
-      form.getName();
-    } catch (err) {
-      Logger.log("No form created for week " + week +", creating one now with name \"" + formName + "\"");
-      form = DriveApp.getFileById(id).makeCopy(formName,folder);
-      existingForm = false;
-    }
-    // Get Form object instead of File object
-    form = FormApp.openById(form.getId());
-    let formId = form.getId();
-    let urlFormEdit = form.shortenFormUrl(form.getEditUrl());
-    let urlFormPub = form.shortenFormUrl(form.getPublishedUrl()); 
-    let range = ss.getRangeByName('FORM_WEEK_'+week);
-    range.setValue(formId);
-    let sheet = ss.getSheetByName('CONFIG');
-    sheet.getRange(range.getRow(),range.getColumn()+1,1,1).setValue(urlFormPub);
-    sheet.getRange(range.getRow(),range.getColumn()+2,1,1).setValue(urlFormEdit);
-    return [form,existingForm];
-  } else {
-    try {
-      form = FormApp.openById(current);
-      return [form,true];
-    }
-    catch (err) {
-      ss.toast('Error Opening Form - delete Form ID for week ' + week + ' and try again to create a new form');
+    if (matches.length == 0) {
+      return true;
+    } else if (matches.length == 1) {
+      let form = matches[0];
+      try {
+        Logger.log('Checking for form in Google Drive');
+        form.getName();
+        if(formNoResponses(form.getId(),week,'drive')) {
+          let file = DriveApp.getFileById(form.getId());
+          file.setTrashed(true);
+          return true;
+        } else {
+          return false;
+        }
+      }
+      catch (err) {
+        Logger.log('No form created for week ' + week + '.');
+        return true;
+      }
+    } else {
+      Logger.log('Multiple instances of form with name \'' + formName + '\' detected.');
+      let responses = 0;
+      let pending = [];
+      let count = matches.length;
+      for (let a = 0; a < count; a++) {
+        try {
+          let form = matches[a];
+          Logger.log('Checking for responses of form ' + (a+1) + ' of ' + count + ' for week ' + week + ' in Google Drive');
+          form.getName();
+          if(formNoResponses(form.getId(),week,'drive',(a+1),count)) {
+            let file = DriveApp.getFileById(form.getId());
+            file.setTrashed(true);
+          } else {
+            responses++;
+            pending.push(matches[a]);
+          }
+        }
+        catch (err) {
+          Logger.log('No form created for week ' + week + '.');
+          return true;
+        }
+      }
+      if (responses > 0) {
+        const ui = SpreadsheetApp.getUi();
+        let alert = ui.alert('There were ' + matches.length + ' forms found in your drive folder; ' + responses + ' had submitted responses, would you like to delete these now?', ui.ButtonSet.OK_CANCEL);
+        if (alert == 'OK') {
+          for (let a = 0; a < pending.length; a++) {
+            let file = DriveApp.getFileById(pending[a].getId());
+            file.setTrashed(true);
+          }
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return true;
+      }
     }
   }
 }
 
-// CREATE FORMS FOR CORRECT WEEK BY CHECKING RECORDED GAMES - Tool to create form and populate with matchups as needed, creates custom survivor selection drop-downs for each member
+// FETCHES FORM - processes checks for existing forms and then gives command to create new form
+function formFetch(name,year,week,reset) {
+  if (reset) {
+    return [newForm(week,year,name),true];
+  } else {
+    filename = formExistingCheck(week,year,'drive',name);
+    if (filename) {
+      let fileId = formExistingCheck(week,year,'ss');
+      if (fileId) {
+        return [newForm(week,year,name),true];
+      }
+    }
+    return [null,false];
+  }
+}
+
+// FORM RESPONSES CHECK - ensures there are no responses to the formId provided, and if so, prompts for form deletion
+// 'multiple' and 'count' are not required, but provide information when checking through multiple instances of a form with the same name
+function formNoResponses(formId,week,source,multiple,count) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let form = FormApp.openById(formId);
+  let extraText;
+  if (source == 'ss') {
+    extraText = ' documented in the spreadseheet';
+  } else if (source == 'drive') {
+    extraText = ' in your Google Drive folder';
+  }
+  let responses = form.getResponses().length;
+  if (responses > 0) {
+    const ui = SpreadsheetApp.getUi();
+    let text = 'EXISTING FORM WITH A RESPONSE\r\n\r\nThere is an existing response for the form for week ' + week;
+    if (responses > 1) {
+      text = 'EXISTING FORM WITH RESPONSES\r\n\r\nThere are existing responses for the form for week ' + week;
+    }
+    if (source == 'ss' || source == 'drive') {
+      text = text.concat(extraText);
+    }
+    text = text.concat(', are you sure you want to remove this form and create a new one?');
+    
+    if (multiple > 0) {
+      return false;
+    } else {
+      let prompt = ui.alert(text, ui.ButtonSet.YES_NO);
+      if (prompt == ui.Button.YES) {
+        let file = DriveApp.getFileById(form.getId());
+        file.setTrashed(true);
+        return true;
+      } else {
+        return false;
+      }
+    }
+  } else {
+    if (multiple > 0) {
+      if (count == null) {
+        count = 'unkown quantity';
+      }
+      let text = 'Existing form ' + multiple + ' of ' + count + ' for week ' + week + ' in Google Drive, but no responses logged.';
+      ss.toast(text);
+      Logger.log(text);
+      return true;
+    }
+    let text = 'Existing form for week ' + week + extraText + ', but no responses logged.';
+    ss.toast(text);
+    Logger.log(text);
+    return true;
+  }
+}
+
+// NEW FORM - creates a copy of the template form for use in new form creation
+function newForm(week,year,name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  // Template form for creating new forms
+  let id = '12fWFNFDbH5evyoSP8FdUUi6B3ZlZuGt0IWei-7IYuq0';
+  
+  // Check for folder and create one if doesn't exist
+  let folder = null;
+  if (name == null || name == '') {
+    name = 'NFL Pick \’Ems';
+  }
+  let folderName = year + ' ' + name + ' Forms';
+  let folders = DriveApp.getFoldersByName(folderName);
+  while (folders.hasNext()) {
+    let current = folders.next();
+    if(folderName == current.getName()) {         
+      folder = current;
+    }
+  }
+  try { 
+    folder.getName();
+  } 
+  catch (err) {
+    Logger.log('No ' + name + ' folder created for ' + year + ', creating one now');
+    folder = DriveApp.createFolder(year + " " + name + ' Forms');
+  }
+  
+  // Establish name of form
+  
+  let formName = name + ' - Week ' + week + ' - ' + year;
+  let form = DriveApp.getFileById(id).makeCopy(formName,folder);
+  
+  // Get Form object instead of File object
+  form = FormApp.openById(form.getId());
+  let formId = form.getId();
+  let urlFormEdit = form.shortenFormUrl(form.getEditUrl());
+  let urlFormPub = form.shortenFormUrl(form.getPublishedUrl()); 
+  let range = ss.getRangeByName('FORM_WEEK_'+week);
+  range.setValue(formId);
+  range.getSheet().getRange(range.getRow(),range.getColumn()+1,1,1).setValue(urlFormPub);
+  range.getSheet().getRange(range.getRow(),range.getColumn()+2,1,1).setValue(urlFormEdit);
+  return form;    
+}
+
+// CREATE FORMS FOR CORRECT WEEK BY CHECKING EXISTING WEEKLY SHEETS - Tool to launch formCreate script without inputs, runs checks for existing and suggests which week to create
 function formCreateAuto() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let markedWeek = ss.getRangeByName('WEEK').getValue();
   let markedWeekForm = ss.getRangeByName('FORM_WEEK_'+markedWeek).getValue();
   let year = fetchYear();
-  let week;
   ss.toast('Gathering information to suggest the week you intend to create...');
   if ((markedWeekForm == null || markedWeekForm == '') && markedWeek == 1) {
-    week = 1; // If no form exists and week is noted as 1, then proceed
+    formCreate(false,1,year,null); // If no form exists and week is noted as 1, then proceed
   } else {
-    let data = ss.getRangeByName('NFL_'+year).getValues();
-    let weeks = fetchWeeks();
-    let outcomeCount, gameCount, matchesUnmarked = [];
-    let regex = new RegExp(/[A-Z]{2,3}/);
-    for (let week = 1; week <= weeks; week++) {
-      gameCount = 0;
-      outcomeCount = 0;
-      let outcomes = ss.getRangeByName('NFL_'+year+'_OUTCOMES_'+week).getValues().flat();
-      for (let a = 0; a < data.length; a++) {
-      if (data[a][0] == week) {
-        gameCount++;
-        }
-      }
-      for (let a = 0; a < outcomes.length; a++) {
-        try {
-          if (regex.test(outcomes[a].trim())) {
-            outcomeCount++;
-          }
-        }
-        catch (err) {
-          Logger.log('Issue with formCreateAuto trim function ' + err.stack);
-          if (regex.test(outcomes[a])) {
-            outcomeCount++;
-          }
-        }
-      }
-      matchesUnmarked.push(gameCount - outcomeCount);
-    }
-    week = matchesUnmarked.lastIndexOf(0) + 2; // Add 1 for index offset and add 1 for moving to the next week
+    Logger.log(nextWeek());
+    formCreate(false,nextWeek(),year,null);
   }
-  ss.toast('Week ' + week + ' is the next week up of unmarked game scores, loading \"Form Create\" script.');
-  formCreate(false,week,year,null);
 }
 
 // CREATE FORMS - Tool to create form and populate with matchups as needed, creates custom survivor selection drop-downs for each member
@@ -4661,23 +4888,22 @@ function formCreate(auto,week,year,name) {
     Logger.log('Your version doesn\'t have the bonus feature configured, add a named range "BONUS_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
   }
   let mnfDouble = false;
-  try{
-    mnfDouble = ss.getRangeByName('MNF_DOUBLE').getValue();
+  if (bonus) {
+    try{
+      mnfDouble = ss.getRangeByName('MNF_DOUBLE').getValue();
+    }
+    catch (err) {
+      Logger.log('Your version doesn\'t have the MNF double feature configured, add a named range "MNF_DOUBLE" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
+    }
   }
-  catch (err) {
-    Logger.log('Your version doesn\'t have the bonus feature configured, add a named range "BONUS_PRESENT" "somewhere on a blank CONFIG sheet cell (hidden by default) with a value TRUE or FALSE to include');
-  }
-
-  let form, formId;
 
   // Begin creation of new form if either pickems or an active survivor pool is present
   if (pickemsInclude == true || (survivorInclude == true && survivorStart <= week)) {
-  
+    Logger.log(week);
     // Fetch update to the NFL data to ensure most recent schedule
-    let data;  
     if ( auto != true && week != 1) {
       try { 
-        data = ss.getRangeByName('NFL_' + year).getValues();
+        ss.getRangeByName('NFL_' + year);
         let refreshNFLPrompt = ui.alert('NFL REFRESH\r\n\r\nDo you want to refresh the NFL schedule data?\r\n\r\n(Only necessary when NFL schedule changes occur)', ui.ButtonSet.YES_NO);
         if (refreshNFLPrompt == 'YES') {
           fetchNFL();
@@ -4692,9 +4918,6 @@ function formCreate(auto,week,year,name) {
         }
       }
     }
-    
-    // Import all NFL data to create form once confirming refreshing of data or leaving it as-is
-    data = ss.getRangeByName('NFL_' + year).getValues();
     
     let members = memberList();
     let locked = membersSheetProtected();
@@ -4721,42 +4944,40 @@ function formCreate(auto,week,year,name) {
       ss.getRangeByName('NAME').setValue(name);
     }
 
-    let existingForm = ss.getRangeByName('FORM_WEEK_'+week).getValue();
-    let deleteExisting = false;
-
-    let formReset;
-    let changeWeek;
-    let newWeek;
-    
-    if (auto != true && (existingForm == null || existingForm == '')) {
-      formReset = ui.alert('NEW FORM\r\n\r\nInitiate form for week ' + week + '?\r\n\r\nSelecting \'NO\' will allow you to enter a number for a different week.', ui.ButtonSet.YES_NO);
-    } else if (auto != true && existingForm != null) {
-      formReset = ui.alert('FORM EXIST\r\n\r\nA form exists for week ' + week + ', do you want to delete the former form and create a new one?\r\n\r\n\ALERT: This will delete any previous form responses for this week.', ui.ButtonSet.YES_NO);
-      if (formReset == 'YES') {
-        deleteExisting = true;
-      }
-    } else {
-      formReset = 'YES';
-    }
-    if ( formReset == ui.Button.NO && auto != true ) {
-      changeWeek = ui.alert('ALTERNATIVE NEW FORM\r\n\r\nCreate form for another week than ' + week + '?', ui.ButtonSet.YES_NO);
-      if ( changeWeek == 'YES' ) {
-        newWeek = ui.prompt('Specify new week:', ui.ButtonSet.OK);
-        week = newWeek.getResponseText();
-        existingForm = ss.getRangeByName('FORM_WEEK_'+week).getValue();
-        let fetched = formFetch(name,year,week);
-        formId = fetched[0];
-        if (fetched[1]) {
-          formReset = ui.alert('FORM EXISTS\r\n\r\nA form exists for week ' + week + ', do you want to delete the former form and create a new one?\r\n\r\n\ALERT: This will delete any previous form responses for this week.', ui.ButtonSet.YES_NO);
-          if (formReset == 'YES') {
-            deleteExisting = true;
-          }
+    let form, alert, proceed = false;
+    week = nextWeek();
+    if (auto != true) {
+      alert = ui.alert('CREATE FORM\r\n\r\nInitiate form for week ' + week + '?\r\n\r\nSelecting \'NO\' will allow you to enter a number for a different week.', ui.ButtonSet.YES_NO);
+      if ( alert == 'NO' && auto != true ) {
+        let regex = new RegExp(/[0-9]{1,2}/);
+        let prompt = ui.prompt('Type the number of the week you\'d like to create:', ui.ButtonSet.OK_CANCEL);
+        week = prompt.getResponseText();
+        while (prompt.getSelectedButton() != 'CANCEL' && prompt.getSelectedButton() != 'CLOSE' && (!regex.test(week) || week < 1 || week > 18)) {
+          prompt = ui.prompt('You didn\'t provide a valid week number.\r\n\r\nType the number of the week you\'d like to create:', ui.ButtonSet.OK_CANCEL);
+          week = prompt.getResponseText();
+        }
+        if (prompt.getSelectedButton() == 'OK') {
+          let fetched = formFetch(name,year,week);
+          form = fetched[0];
+          proceed = fetched[1];
         } else {
-          formReset = 'YES';
+          ss.toast('Canceled selecting custom week');
         }
       }
     }
-    if ( formReset == 'YES' ) {
+    if (auto == true || alert == 'YES') {
+      let fetched = formFetch(name,year,week);
+      form = fetched[0];
+      proceed = fetched[1];
+    }
+    if (proceed) {
+      
+      Logger.log('Diving in for creating week ' + week);
+      ss.toast('Diving in for creating week ' + week);
+
+      // Import all NFL data to create form once confirming refreshing of data or leaving it as-is
+      const data = ss.getRangeByName('NFL_' + year).getValues();
+    
       let survivorReset, survivorUnlock;
       if (survivorInclude && week != 1) {
         if (survivorDone) {
@@ -4795,37 +5016,13 @@ function formCreate(auto,week,year,name) {
       ss.getRangeByName('WEEK').setValue(week);
       ss.toast('Beginning creation of form for week ' + week);
 
-
-      // Attempt to clear former form if user opted to remove it
-      if (deleteExisting) {
-        let form = FormApp.openById(existingForm);
-        try {
-          form.deleteAllResponses();
-        }
-        catch (err) {
-          Logger.log('Issue clearing previous responses');
-        }
-        try {
-          let form = FormApp.openById(existingForm);
-          let file = DriveApp.getFileById(form.getId());
-          file.setTrashed(true);
-          ss.getSheetByName('CONFIG').getRange(ss.getRangeByName('FORM_WEEK_'+week).getRow(),ss.getRangeByName('FORM_WEEK_'+week).getColumn(),1,3).setValue('');
-        }
-        catch (err) {
-          Logger.log('Issue deleting previous form');
-        }
-      }
-
       let formFetchOutput = formFetch(name,year,week,true);
       form = formFetchOutput[0];
-      formId = form.getId();
-      // urlFormEdit = form.shortenFormUrl(form.getEditUrl());
       form.deleteItem(form.getItems()[0]);
       let urlFormPub = form.shortenFormUrl(form.getPublishedUrl());
       let teams = [];
-      
       // Name question
-      let nameQuestion, day, time, minutes;
+      let nameQuestion, item, day, time, minutes;
       // Update form title, ensure description and confirmation are set
       form.setTitle(name + ' - Week ' + week + ' - ' + year)
         .setDescription('Select who you believe will win each game.\r\n\r\nGood luck!')
@@ -4833,15 +5030,13 @@ function formCreate(auto,week,year,name) {
         .setShowLinkToRespondAgain(false)
         .setAllowResponseEdits(false)
         .setAcceptingResponses(true);
-      // Update the form's response destination.
-      //form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());      
+
       // Add drop-down list of names entries
       nameQuestion = form.addListItem();
       nameQuestion.setTitle('Name')
         .setRequired(true);
 
       // Pick 'Ems questions
-      let item;
       if(ss.getRangeByName('PICKEMS_PRESENT').getValue() == true) {
         try {
           let finalGame ='';
@@ -4853,7 +5048,7 @@ function formCreate(auto,week,year,name) {
               item = form.addMultipleChoiceItem();
               if ( data[a][2] == 1 && bonus && mnfDouble) {
                 day = 'DOUBLE POINTS Monday Night Football';
-              } else if ( data[a][2] == 1 ) {
+              } else if (data[a][2] == 1) {
                 day = 'Monday Night Football';
               } else {
                 day = data[a][5];
@@ -4871,7 +5066,9 @@ function formCreate(auto,week,year,name) {
                 time = data[a][3]  + ':' + minutes + ' AM'; // early (pre-noon) game start time with two digits for minutes
               }
               item.setTitle(data[a][8] + ' ' + data[a][9] + ' at ' + data[a][10] + ' ' + data[a][11]);
-              finalGame = data[a][8] + ' ' + data[a][9] + ' at ' + data[a][10] + ' ' + data[a][11]; // After loop completes, this will be the matchup used for the tiebreaker
+              if (tiebreaker) {
+                finalGame = data[a][8] + ' ' + data[a][9] + ' at ' + data[a][10] + ' ' + data[a][11]; // After loop completes, this will be the matchup used for the tiebreaker
+              }
               item.setHelpText(day + ' at ' + time)
                 .setChoices([item.createChoice(data[a][6]),item.createChoice(data[a][7])])
                 .showOtherOption(false)
@@ -4880,8 +5077,8 @@ function formCreate(auto,week,year,name) {
           }
           ss.toast('Created Form questions for all ' + (teams.length/2) + ' NFL games in week ' + week);
           teams.sort();
-
-          if (tiebreaker) {
+          
+          if (tiebreaker) { // Excludes tiebreaker question if tiebreaker is disabled
             let numberValidation = FormApp.createTextValidation()
               .setHelpText('Input must be a whole number between 0 and 100')
               .requireWholeNumber()
@@ -4895,7 +5092,8 @@ function formCreate(auto,week,year,name) {
               .setRequired(true)
               .setValidation(numberValidation);
           }
-          if(commentsInclude == true && pickemsInclude == true) {
+
+          if(commentsInclude == true && pickemsInclude == true) { // Excludes comment question if comments are disabled
             item = form.addTextItem();
             item.setTitle('Comments')
               .setHelpText('Passing thoughts...');
@@ -4923,8 +5121,8 @@ function formCreate(auto,week,year,name) {
       newUserPage.setGoToPage(FormApp.PageNavigationType.SUBMIT);
       Logger.log('Adding new user page');
       let nameValidation = FormApp.createTextValidation()
-        .setHelpText('Enter text of 2 characters, up to 30.')
-        .requireTextMatchesPattern("[A-Za-z]\\D{1,30}")
+        .setHelpText('Enter a minimum of 2 characters, up to 30.')
+        .requireTextMatchesPattern("[A-Za-z0-9]\\D{1,30}")
         .build();
       newNameQuestion = form.addTextItem();
       newNameQuestion.setTitle('Name')
@@ -4945,8 +5143,7 @@ function formCreate(auto,week,year,name) {
         finalPage.setGoToPage(FormApp.PageNavigationType.SUBMIT);
       }
 
-      let entry;
-      let nameOptions = [];
+      let entry, nameOptions = [];
       // Survivor question
       if(survivorInclude == true && survivorStart <= week) {
         let survivorPages = [];
@@ -5457,7 +5654,7 @@ function dataTransfer(redirect,thursOnly) {
     let weekPrompt = ui.alert('IMPORT PICKS\r\n\r\nBring in picks from week ' + week + '?\r\n\r\nSelectiong \'NO\' will allow you to select a different week', ui.ButtonSet.YES_NO_CANCEL);
     if (weekPrompt == 'NO') {
       weekPrompt = ui.prompt('ENTER WEEK\r\n\r\nType the number of the week you\'d like to import:',ui.ButtonSet.OK_CANCEL);
-      let regex = new RegExp('[0-9]{1,2}');
+      let regex = new RegExp(/[0-9]{1,2}/);
       if (regex.test(weekPrompt.getResponseText())) {
         continueImport = true;
         week = weekPrompt.getResponseText();
@@ -5895,6 +6092,31 @@ function adjustColumns(sheet,columns,verbose){
     if(verbose) return Logger.log('Removed ' + (maxColumns - columns) + ' column(s)');
   } else {
     if(verbose) return Logger.log('Columns not adjusted');
+  }
+}
+
+// NEXT WEEK - Detects what is the highest integer weekly sheet for prompting creation of new forms (or sheets);
+function nextWeek() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let week = 0;
+  const year = fetchYear();
+  let sheets = ss.getSheets();
+  let regex = new RegExp('^'+year+'_[0-9]{2}'); // sheetName = year + '_0' + week (needs to be updated when new weekly naming changes)
+  for (let a = 0; a < sheets.length; a++) {
+    if (regex.test(sheets[a].getSheetName())) {
+      let number = parseInt(sheets[a].getName().replace(year+'_',''));
+      if (week < number) {
+        week = number;
+      }
+    }
+  }
+  if (week > 0) {
+    week++;
+    ss.toast('Week ' + week + ' is the next week up of unmarked game scores, loading \"Form Create\" script.');
+    return week;
+  } else {
+    ss.toast('Issue detecting previous forms or which week is next, assuming week ' + (markedWeek+1));
+    return (markedWeek+1);
   }
 }
 
