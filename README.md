@@ -264,6 +264,7 @@ Hopeful improvements for future versions:
 - Column for payment/entry fee received per weekly sheet
 - Adjust naming conventions for named ranges and weekly sheets
 - Member rename function
+- Confidence pick 'ems capability
 - More metrics (suggestions welcome!)
 
 -------------------------
