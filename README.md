@@ -265,6 +265,7 @@ Hopeful improvements for future versions:
 - Adjust naming conventions for named ranges and weekly sheets
 - Member rename function
 - Confidence pick 'ems capability
+- Opting out of survivor competition in the Form
 - More metrics (suggestions welcome!)
 
 -------------------------
