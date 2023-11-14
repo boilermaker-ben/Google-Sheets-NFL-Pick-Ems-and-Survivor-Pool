@@ -4647,7 +4647,7 @@ function dataTransfer(redirect,thursOnly) {
   const commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
   let continueImport = false;
   if (redirect == null) {
-    let weekPrompt = ui.alert('Import picks from week ' + week + '?\r\n\r\nSelectiong \'NO\' will allow you to select a different week', ui.ButtonSet.YES_NO_CANCEL);
+    let weekPrompt = ui.alert('Import picks from week ' + week + '?\r\n\r\nSelecting \'NO\' will allow you to select a different week', ui.ButtonSet.YES_NO_CANCEL);
     if (weekPrompt == 'NO') {
       weekPrompt = ui.prompt('Type the number of the week you\'d like to import:',ui.ButtonSet.OK_CANCEL);
       let regex = new RegExp('[0-9]{1,2}');
