@@ -1,7 +1,7 @@
 /** GOOGLE SHEETS PICK 'EMS & SURVIVOR
  * League Creator & Management Platform Tool
  * v2.5
- * 10/04/2023
+ * 12/19/2023
  * 
  * Created by Ben Powers
  * ben.powers.creative@gmail.com
@@ -1171,8 +1171,7 @@ function fetchNFLGames(week) {
     Logger.log(text);
     ss.toast(text);
     fetchNFL();
-    fetchNFLGames(week);
-    return games;
+    return fetchNFLGames(week);
   }
 }
 
@@ -1337,9 +1336,10 @@ function fetchNFLWeeklyScores(){
   }
   catch (err) {
     Logger.log(err.stack);
-    ui.alert('ESPN API isn\'t responding currently, try again in a moment.');
+    ui.alert('ESPN API isn\'t responding currently, try again in a moment.',ui.ButtonSet.OK);
     throw new Error('ESPN API issue, try later');
   }
+  
   
   if (Object.keys(obj).length > 0) {
     let games = obj.events;
@@ -1418,7 +1418,7 @@ function fetchNFLWeeklyScores(){
     }
   } else {
     Logger.log('ESPN API returned no games');
-    ui.alert('ESPN API didn\'t return any game information. Try again later and make sure you\'re checking while the NFL season is active');
+    ui.alert('ESPN API didn\'t return any game information. Try again later and make sure you\'re checking while the NFL season is active',ui.ButtonSet.OK);
   }
 }
 
@@ -2219,6 +2219,7 @@ function weeklySheet(year,week,members,dataRestore) {
     if ( data[a][0] == week && (tnfInclude == true || (tnfInclude == false && data[a][2] >= 0))) {
       matches++;
       let day = data[a][2];
+      let evening = data[a][3] >= 17 ? true : false;
       let away = data[a][6];
       let home = data[a][7];
       let matchup = away + '\n@' + home;
@@ -2232,7 +2233,7 @@ function weeklySheet(year,week,members,dataRestore) {
           bonuses.push(1);
         }
       }
-      if ( day == 1 ) {
+      if ( day == 1 && evening ) {
         mnf = true;
         if ( mnfStartCol == undefined ) {
           mnfStartCol = headers.length + 1;
@@ -3279,10 +3280,10 @@ function mnfSheet(year,weeks,members) {
   let data = ss.getRangeByName('NFL_'+year).getValues();
   let text = '0';
   let result = text.repeat(weeks);
-  let mondayGames = Array.from(result);
+  let mondayNightGames = Array.from(result);
   for (let a = 0; a < data.length; a++) {
-    if ( data[a][2] == 1 ) {
-      mondayGames[(data[a][0]-1)]++;
+    if ( data[a][2] == 1 && data[a][3] >= 17) {
+      mondayNightGames[(data[a][0]-1)]++;
     }
   }
   let rows = totalMembers + 1;
@@ -3317,12 +3318,12 @@ function mnfSheet(year,weeks,members) {
   
   let headers = [];
   for ( let a = 0; a < weeks; a++ ) {
-    if (mondayGames[a] == 2) {
+    if (mondayNightGames[a] == 2) {
       range = sheet.getRange(1,a+3);
       range.setNote('Two MNF Games')
         .setFontWeight('bold')
         .setBackground('#666666');
-    } else if (mondayGames[a] == 3) {
+    } else if (mondayNightGames[a] == 3) {
       range = sheet.getRange(1,a+3);
       range.setNote('Three MNF Games')
         .setFontWeight('bold')
@@ -5045,10 +5046,11 @@ function formCreate(auto,week,year,name) {
             if ( data[a][0] == week && (tnfInclude == true || (tnfInclude == false && data[a][2] >= 0))) {
               teams.push(data[a][6]);
               teams.push(data[a][7]);
+              evening = data[a][3] >= 17 ? true : false;
               item = form.addMultipleChoiceItem();
-              if ( data[a][2] == 1 && bonus && mnfDouble) {
+              if ( data[a][2] == 1 && bonus && mnfDouble && evening) {
                 day = 'DOUBLE POINTS Monday Night Football';
-              } else if (data[a][2] == 1) {
+              } else if (data[a][2] == 1 && evening) {
                 day = 'Monday Night Football';
               } else {
                 day = data[a][5];
