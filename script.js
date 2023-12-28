@@ -2031,14 +2031,18 @@ function weeklySheet(year,week,members,dataRestore) {
   ss.setNamedRange('NFL_'+year+'_'+week,sheet.getRange(1,5,1,matches));
   ss.setNamedRange('NFL_'+year+'_PICKEM_OUTCOMES_'+week,sheet.getRange(2,5,1,matches));
   ss.setNamedRange('NFL_'+year+'_PICKS_'+week,sheet.getRange(3,5,totalMembers,matches));
-  if (tnf == true) {
+  if (tnf) {
     ss.setNamedRange('NFL_'+year+'_THURS_PICKS_'+week,sheet.getRange(3,tnfStartCol,totalMembers,tnfEndCol-tnfStartCol+1));
   }
-  if (mnfInclude == true) {
-    ss.setNamedRange('NFL_'+year+'_MNF_'+week,sheet.getRange(3,mnfStartCol,totalMembers,mnfEndCol-(mnfStartCol-1)));
+  if (mnfInclude && mnf) {
+    try {
+      ss.setNamedRange('NFL_'+year+'_MNF_'+week,sheet.getRange(3,mnfStartCol,totalMembers,mnfEndCol-(mnfStartCol-1)));
+    }
+    catch (err) {
+    }
   }
   ss.setNamedRange('NFL_'+year+'_TIEBREAKER_'+week,sheet.getRange(3,tiebreakerCol,totalMembers,1));
-  if (commentInclude == true) {
+  if (commentInclude) {
     ss.setNamedRange('COMMENTS_'+year+'_'+week,sheet.getRange(3,commentCol,totalMembers,1));
   }  
 
