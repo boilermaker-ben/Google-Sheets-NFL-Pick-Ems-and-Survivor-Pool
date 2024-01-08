@@ -1,12 +1,13 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.4 - 2023
+// v2.4.1 - 01.08.2024
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
 // CONSTANTS
 const nflTeams = 32;
 const maxGames = nflTeams/2;
+const regularSeason = 18;
 
 // PRELIM SETUP- Creation of all needed initial sheets, prompt to import NFL
 function runFirst() {
@@ -899,7 +900,7 @@ function fetchTeamsESPN() {
 
 //------------------------------------------------------------------------
 // NFL TEAM INFO - script to fetch all NFL data for teams
-function fetchNFL() {
+function fetchNFL(week) {
   // Calls the linked spreadsheet
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -954,8 +955,36 @@ function fetchNFL() {
     weeks++;
   }
 
+
   location = [];
   
+  if (week == null) {   
+    week = fetchWeek();
+  }
+
+  let post = [];
+  try {
+    if (week >= regularSeason) {
+      post = fetchPostseason(year,week) 
+    }
+    if (post.length > 0) {
+      for (let a = 0 ; a < objTeams.length ; a++ ) {
+        let i = objTeams[a].id;
+        for (let b = 0 ; b < post.length ; b++) {
+          if ( post[b].homeProTeamId == i || post[b].awayProTeamId == i) {
+            objTeams[a].proGamesByScoringPeriod[post[b].week] = [{'date':post[b].date,'homeProTeamId':post[b].homeProTeamId,'awayProTeamId':post[b].awayProTeamId}];
+          }
+          if (post[b].week > weeks) {
+            weeks = post[b].week;
+          }
+        }
+      }
+    }
+  }
+  catch (err) {
+    Logger.log('Issue pulling postseason games');
+  }
+
   for (let a = 0 ; a < teamsLen ; a++ ) {
     
     arr = [];
@@ -979,24 +1008,34 @@ function fetchNFL() {
           hours.push('BYE');
           minutes.push('BYE');
         } else {
-          if ( objTeams[a].proGamesByScoringPeriod[b][0].homeProTeamId.toFixed(0) === id ) {
-            arr.push(abbrs[ids.indexOf(objTeams[a].proGamesByScoringPeriod[b][0].awayProTeamId.toFixed(0))]);
-            home.push(1);
-            date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
-            dates.push(date);
-            hour = date.getHours();
-            hours.push(hour);
-            minute = date.getMinutes();
-            minutes.push(minute);
-          } else {
-            arr.push(abbrs[ids.indexOf(objTeams[a].proGamesByScoringPeriod[b][0].homeProTeamId.toFixed(0))]);
-            home.push(0);
-            date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
-            dates.push(date);
-            hour = date.getHours();
-            hours.push(hour);
-            minute = date.getMinutes();
-            minutes.push(minute);
+          try {
+            if ( objTeams[a].proGamesByScoringPeriod[b][0].homeProTeamId.toFixed(0) === id ) {
+              arr.push(abbrs[ids.indexOf(objTeams[a].proGamesByScoringPeriod[b][0].awayProTeamId.toFixed(0))]);
+              home.push(1);
+              date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
+              dates.push(date);
+              hour = date.getHours();
+              hours.push(hour);
+              minute = date.getMinutes();
+              minutes.push(minute);
+            } else {
+              arr.push(abbrs[ids.indexOf(objTeams[a].proGamesByScoringPeriod[b][0].homeProTeamId.toFixed(0))]);
+              home.push(0);
+              date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
+              dates.push(date);
+              hour = date.getHours();
+              hours.push(hour);
+              minute = date.getMinutes();
+              minutes.push(minute);
+            }
+          }
+          catch (err) {
+            Logger.log('No matchup for scoring period ' + b + ' for ' + abbrs[ids.indexOf(id)])
+            arr.push('');
+            home.push('');
+            dates.push('');
+            hours.push('');
+            minutes.push('');
           }
         }
       }
@@ -1009,14 +1048,14 @@ function fetchNFL() {
   }
   
   // This section creates a nice table to be used for lookups and queries about NFL season
-  let week, awayTeam, awayTeamName, awayTeamLocation, homeTeam, homeTeamName, homeTeamLocation, mnf, day, dayName;
+  let matchWeek, awayTeam, awayTeamName, awayTeamLocation, homeTeam, homeTeamName, homeTeamLocation, mnf, day, dayName;
   let formData = [];
   arr = [];
   let weekArr = [];
   for (let b = 0; b < (teamsLen - 1); b++ ) {
     for ( let c = 1; c <= weeks; c++ ) {
       if (location[b][c] == 1) {
-        week = c;
+        matchWeek = c;
         awayTeam = schedule[b][c];
         awayTeamName = espnName[espnAbbr.indexOf(awayTeam)];
         awayTeamLocation = espnLocation[espnAbbr.indexOf(awayTeam)];
@@ -1043,9 +1082,9 @@ function fetchNFL() {
           day = -1;
           dayName = 'Saturday';
         }        
-        arr = [week, date, day, hour, minute, dayName, awayTeam, homeTeam, awayTeamLocation, awayTeamName, homeTeamLocation, homeTeamName];
+        arr = [matchWeek, date, day, hour, minute, dayName, awayTeam, homeTeam, awayTeamLocation, awayTeamName, homeTeamLocation, homeTeamName];
         formData.push(arr);
-        weekArr.push(week);
+        weekArr.push(matchWeek);
       }
     }
   }
@@ -1121,6 +1160,55 @@ function fetchNFL() {
     // Logger.log('fetchNFL hiding: Couldn\'t hide sheet as no other sheets exist');
   }
   ss.toast('Imported all NFL schedule data');
+}
+
+//------------------------------------------------------------------------
+// NFL POSTSEASON PULL - Pulls down, team-by-team, any post-season matchups and returns them in an array of [{homeProTeamId:<xx>,awayProTeamId:<xx>,date:<unix_timestamp>,week:<xx>}]
+function fetchPostseason(year,week) {
+  
+  if (year == null) {
+    year = fetchYear();
+  }
+  if (week == null) {
+    week = fetchWeek();
+  }
+  
+  const proTeams = fetchTeamsESPN();
+  let ids = [];
+  Object.keys(proTeams).forEach(x => {
+    if (proTeams[x].id != 0) {
+      ids.push(proTeams[x].id);
+    }
+  });
+  let entries = [];
+  for (let a = 0; a < ids.length; a++) {
+    let url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/' + ids[a] + '/schedule?season=' + year + '&seasontype=3';
+    let obj = JSON.parse(UrlFetchApp.fetch(url));
+    let e = [];
+    if (obj.events.length > 0) {
+      for (let b = 0; b < obj.events.length; b++) {
+        let add = true;
+        let home = obj.events[b].competitions[0].competitors[0].homeAway === 'home' ? obj.events[b].competitions[0].competitors[0].id : obj.events[b].competitions[0].competitors[1].id;
+        let away = obj.events[b].competitions[0].competitors[0].homeAway === 'away' ? obj.events[b].competitions[0].competitors[0].id : obj.events[b].competitions[0].competitors[1].id;
+        let w = obj.events[b].week.number + regularSeason;
+        e = {'week':w,
+            'homeProTeamId':parseInt(home),
+            'awayProTeamId':parseInt(away),
+            'date':Date.parse(obj.events[b].date),
+        }
+        for (let b = 0; b < entries.length; b++) {
+          if (entries[b].homeProTeamId == home && entries[b].week == w) {
+            add = false;
+          }
+        }
+        if (add) {
+          entries = entries.concat(e);
+        }
+      }
+    }
+  }
+  return entries;
+
 }
 
 //------------------------------------------------------------------------
