@@ -1,6 +1,6 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.4.1 - 01.08.2024
+// v2.4.1 - 01.09.2024
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
@@ -8,6 +8,7 @@
 const nflTeams = 32;
 const maxGames = nflTeams/2;
 const regularSeason = 18;
+const postSeason = 4;
 
 // PRELIM SETUP- Creation of all needed initial sheets, prompt to import NFL
 function runFirst() {
@@ -306,6 +307,153 @@ function runFirst() {
       }
     }
   }
+}
+
+//---------------------------------------------------------------------
+// ADD PLAYOFFS - Function to add named ranges, rows, columns to incorporate playoffs ; only to be run once
+function addPlayoffs() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const year = fetchYear();
+  const week = fetchWeek();
+  const weeks = regularSeason + postSeason;
+  try {
+    // CONFIG sheet update
+    let sheet = ss.getSheetByName('CONFIG');
+    let values = sheet.getRange(1,1,40,1).getValues().flat();
+    if (values.indexOf(weeks) < 0) {
+      let end = values.indexOf(regularSeason) + 1;
+      if(sheet.getMaxRows() < end + postSeason) {
+        sheet.insertRowsAfter(sheet.getMaxRows(),sheet.getMaxRows()-end+postSeason);
+      }
+      let w = 1;
+      for (let a = end+1; a < end+1+postSeason; a++) {
+        sheet.getRange(a,1).setValue(regularSeason+w);
+        ss.setNamedRange('FORM_WEEK_'+(regularSeason+w),sheet.getRange(a,2));
+        w++;
+      }
+    }
+    ss.getRangeByName('WEEKS').setValue(weeks);
+  }
+  catch (err) {
+    Logger.log('Issue with updating CONFIG sheet, error : ' + err.stack);
+    ss.toast('Issue with updating CONFIG sheet, error : ' + err.stack);
+  }
+    
+  try {
+    // NFL OUTCOMES sheet update
+    sheet = ss.getSheetByName('NFL_OUTCOMES');
+    try { 
+      if (sheet.getMaxColumns() < weeks) {
+        sheet.insertColumnsAfter(sheet.getMaxColumns(),weeks - sheet.getMaxColumns());
+      }
+    }
+    catch(err){
+      Logger.log('Already enough columns present');
+    }
+    let existingRange = ss.getRangeByName('NFL_'+year+'_OUTCOMES_1');
+    let existingRangeRow = existingRange.getRow();
+    let existingRangeRows = existingRange.getNumRows();
+    for (let a = regularSeason+1; a <= weeks; a++) {
+      sheet.getRange(existingRangeRow-1,a,1,).setValue(a);
+      let range = sheet.getRange(existingRangeRow,a,existingRangeRows,1);
+      range.clearDataValidations();
+      ss.setNamedRange('NFL_'+year+'_OUTCOMES_'+a,range);
+    }
+    
+    sheet.getRange(1,1,1,sheet.getMaxColumns()).mergeAcross();
+    let range = sheet.getRange(existingRangeRow,regularSeason+1,existingRangeRows,weeks - regularSeason);
+    range.setBackground('#dddddd');
+    let rules = sheet.getConditionalFormatRules();
+    let newRules = [];
+    for (let a = 0; a < rules.length; a++) {
+      let rangesFormat = rules[a].getRanges();
+      let ranges = [];
+      for (let b = 0; b < rangesFormat.length; b++) {
+        if (rangesFormat[b].getColumn() < rangesFormat[b].getLastColumn()) {
+          let newRange = sheet.getRange(rangesFormat[b].getRow(),rangesFormat[b].getColumn());
+          ranges.push(newRange);
+        } else {
+          ranges.push(rangesFormat[b]);
+        }
+      }
+      let condition = rules[a].getBooleanCondition();
+      let newRule = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(condition.getCriteriaValues())
+        .setBackground(condition.getBackgroundObject().asRgbColor().asHexString())
+        .setRanges(ranges);
+      if (condition.getBold()) {
+        newRule.setBold(true);
+      }
+      newRule.build();
+      newRules.push(newRule);
+    }
+
+    let tieRule = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo('TIE')
+        .setBold(false)
+        .setBackground('#aaaaaa')
+        .setRanges([sheet.getRange(range.getRow(),1,range.getNumRows(),sheet.getMaxColumns())])
+        .build();
+
+    newRules.push(tieRule);
+    sheet.clearConditionalFormatRules();
+    sheet.setConditionalFormatRules(newRules);
+  }
+  catch (err) {
+    Logger.log('Issue with updating NFL_OUTCOMES sheet, error : ' + err.stack);
+    ss.toast('Issue with updating NFL_OUTCOMES sheet, error : ' + err.stack);
+  }
+
+  // OVERALL, OVERALL_RANK, OVERALL_PCT sheets update
+  let prefix = 'OVERALL';
+  let arr = ['','_RANK','_PCT'];
+  for (let a = 0; a < arr.length; a++) {
+    try {
+      let sheet = ss.getSheetByName(prefix + arr[a]);
+      try {
+        if (sheet.getMaxColumns() < regularSeason + 2 + postSeason) {
+          sheet.insertColumnsAfter(sheet.getMaxColumns(),(regularSeason+2+postSeason)-sheet.getMaxColumns());
+        }
+      }
+      catch(err) {
+        Logger.log('No extra columns needed for sheet ' + prefix + arr[a])
+      }
+      for (let a = regularSeason+3; a <= weeks+2; a++) {
+        sheet.getRange(1,a).setValue(a - 2);
+      }
+      let name = 'TOT_WEEKLY'+arr[a]+'_'+year;
+      let range = ss.getRangeByName(name);
+      ss.setNamedRange(name,sheet.getRange(range.getRow(),range.getColumn(),range.getNumRows(),weeks));
+    }
+    catch (err) {
+      Logger.log('Issue with updating ' + (prefix + arr[a]) + ' sheet, error : ' + err.stack);
+      ss.toast('Issue with updating ' + (prefix + arr[a]) + ' sheet, error : ' + err.stack);
+    }
+    }
+
+  try {
+    // WINNERS sheet update
+    sheet = ss.getSheetByName('WINNERS');
+    
+    let values = sheet.getRange(2,1,25,1).getValues().flat();
+    Logger.log((regularSeason+postSeason)-regularSeason);
+    if (values.indexOf(regularSeason+postSeason) < 0) {
+      sheet.insertRowsAfter(regularSeason+1,(regularSeason+postSeason)-regularSeason);
+      for (let a = (regularSeason+1); a <= (regularSeason+postSeason); a++) {
+        Logger.log(a);
+        sheet.getRange(a+1,1).setValue(a);
+        // sheet.getRange(a+1,2).setFormula('=iferror(join(", ",sort(filter(NAMES_'+year+'_'+(a+1)+',WIN_'+year+'_'+a+'=1),1,true)))');
+      }
+    }
+  }
+  catch (err) {
+    Logger.log('Issue with updating WINNERS sheet, error : ' + err.stack);
+    ss.toast('Issue with updating WINNERS sheet, error : ' + err.stack);
+  }
+
+  allFormulasUpdate();
+  ui.alert('You\'ve successfully added content to allow for playoff pick \'ems!\r\n\r\nPlease run the \'Create Form\' function to generate a new form.')
 }
 
 function survivorEvalFix() {
@@ -843,7 +991,11 @@ function fetchWeek() {
         const obj = JSON.parse(UrlFetchApp.fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').getContentText());
         let week = 1;
         if(obj.events[0].season.slug != 'preseason'){
-          week = obj.week.number;
+          if(obj.events[0].season.slug == 'postseason'){
+            week = obj.week.number + regularSeason;
+          } else {
+            week = obj.week.number;
+          }
         }
         return week;
       }
@@ -870,23 +1022,25 @@ function fetchWeek() {
 //------------------------------------------------------------------------
 // FETCH TOTAL WEEKS
 function fetchWeeks() {
-  try {
-    let weeks;
-    const content = UrlFetchApp.fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').getContentText();
-    const obj = JSON.parse(content);
-    const calendar = obj.leagues[0].calendar;
-    for (let a = 0; a < calendar.length; a++) {
-      if (calendar[a].value == 2) {
-        weeks = calendar[a].entries.length;
-        break;
-      }
-    }
-    return weeks;
-  }
-  catch (err) {
-    Logger.log('ESPN API has an issue right now');
-    return 18;
-  }
+  const weeks = regularSeason + postSeason;
+  return weeks;
+  // try {
+  //   let weeks;
+  //   const content = UrlFetchApp.fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').getContentText();
+  //   const obj = JSON.parse(content);
+  //   const calendar = obj.leagues[0].calendar;
+  //   for (let a = 0; a < calendar.length; a++) {
+  //     if (calendar[a].value == 2) {
+  //       weeks = calendar[a].entries.length;
+  //       break;
+  //     }
+  //   }
+  //   return weeks;
+  // }
+  // catch (err) {
+  //   Logger.log('ESPN API has an issue right now');
+  //   return 18;
+  // }
 }
 
 //------------------------------------------------------------------------
@@ -1473,6 +1627,7 @@ function nflOutcomesSheet(year) {
     fetchNFL();
     data = ss.getRangeByName('NFL_'+year).getValues();
   }
+  
   
   let tnfInclude = true;
   try{
@@ -3892,8 +4047,8 @@ function formCreateAuto() {
       outcomeCount = 0;
       let outcomes = ss.getRangeByName('NFL_'+year+'_OUTCOMES_'+week).getValues().flat();
       for (let a = 0; a < data.length; a++) {
-      if (data[a][0] == week) {
-        gameCount++;
+        if (data[a][0] == week) {
+          gameCount++;
         }
       }
       for (let a = 0; a < outcomes.length; a++) {
@@ -3909,8 +4064,13 @@ function formCreateAuto() {
           }
         }
       }
-      matchesUnmarked.push(gameCount - outcomeCount);
+      if (gameCount > 0) {
+        matchesUnmarked.push(gameCount - outcomeCount);
+      } else {
+        matchesUnmarked.push(1);
+      }
     }
+    Logger.log(matchesUnmarked)
     week = matchesUnmarked.lastIndexOf(0) + 2; // Add 1 for index offset and add 1 for moving to the next week
   }
   ss.toast('Week ' + week + ' is the next week up of unmarked game scores, loading \"Form Create\" script.');
@@ -4110,7 +4270,8 @@ function formCreate(auto,week,year,name) {
       // Name question
       let nameQuestion, day, time, minutes;
       // Update form title, ensure description and confirmation are set
-      form.setTitle(name + ' - Week ' + week + ' - ' + year)
+      const title = week > regularSeason ? name + ' - Week ' + (week - regularSeason) + ' of the ' + year + ' Playoffs' : name + ' - Week ' + week + ' - ' + year;
+      form.setTitle(title)
         .setDescription('Select who you believe will win each game.\r\n\r\nGood luck!')
         .setConfirmationMessage('Thanks for responding!')
         .setShowLinkToRespondAgain(false)
@@ -5188,3 +5349,10 @@ function resetSpreadsheet() {
   }
   
 }
+
+
+
+
+
+
+
