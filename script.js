@@ -1530,7 +1530,8 @@ function fetchNFLWeeklyScores(){
     if (year == null) {
       year = obj.season.year;
     }
-    let week = obj.week.number;
+    
+    let week = obj.season.type === 3 ? regularSeason + obj.week.number : obj.week.number;
 
     // Checks if preseason, if not, pulls in score data
     if(obj.events[0].season.slug == 'preseason'){
