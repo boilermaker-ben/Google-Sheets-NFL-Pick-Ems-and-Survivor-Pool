@@ -1,6 +1,6 @@
 // Google Sheets NFL Pick 'Ems & Survivor
 // League Creator & Management Platform Tool
-// v2.4.1 - 01.09.2024
+// v2.4.2 - 02.06.2024
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
@@ -8,7 +8,7 @@
 const nflTeams = 32;
 const maxGames = nflTeams/2;
 const regularSeason = 18;
-const postSeason = 4;
+const postSeason = 4; // Week 4 of postseason is omitted for Pro Bowl, Super Bowl displays as week 5
 
 // PRELIM SETUP- Creation of all needed initial sheets, prompt to import NFL
 function runFirst() {
@@ -984,15 +984,19 @@ function fetchYear() {
 function fetchWeek() {
   try {
     let week = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('WEEK').getValue();
-    if (week != null) {
+    if (week != null && week != '') {
       return week;
     } else {
       try {
         const obj = JSON.parse(UrlFetchApp.fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').getContentText());
         let week = 1;
         if(obj.events[0].season.slug != 'preseason'){
-          if(obj.events[0].season.slug == 'postseason'){
-            week = obj.week.number + regularSeason;
+          if(obj.events[0].season.slug == 'post-season'){
+            if (obj.week.number > 4) {
+              week = obj.week.number + regularSeason - 1;
+            } else {
+              week = obj.week.number + regularSeason;
+            }
           } else {
             week = obj.week.number;
           }
@@ -1055,6 +1059,7 @@ function fetchTeamsESPN() {
 //------------------------------------------------------------------------
 // NFL TEAM INFO - script to fetch all NFL data for teams
 function fetchNFL(week) {
+  
   // Calls the linked spreadsheet
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -1115,11 +1120,12 @@ function fetchNFL(week) {
   if (week == null) {   
     week = fetchWeek();
   }
-
+  
   let post = [];
   try {
     if (week >= regularSeason) {
       post = fetchPostseason(year,week) 
+      Logger.log(JSON.stringify(post));
     }
     if (post.length > 0) {
       for (let a = 0 ; a < objTeams.length ; a++ ) {
@@ -1258,7 +1264,9 @@ function fetchNFL(week) {
   }
   
   maxRows = sheet.getMaxRows();
-  if (maxRows < rows){
+  if (rows == maxRows + 1) {
+    sheet.insertRows(maxRows,1);
+  } else if (maxRows < rows){
     sheet.insertRows(maxRows,rows - maxRows - 1);
   } else if (maxRows > rows){
     sheet.deleteRows(rows,maxRows - rows);
@@ -1298,7 +1306,7 @@ function fetchNFL(week) {
   homeTeam = headers.indexOf('homeTeam')+1;
   for (let a = 1; a <= weeks; a++) {
     let start = weekArr.indexOf(a)+2;
-    let end = weekArr.indexOf(a+1)+2;
+    let end = weekArr.indexOf(a+1) == -1 ? start + 1 : weekArr.indexOf(a+1)+2;
     if (a == weeks) {
       end = rows+1;
     }
@@ -1344,7 +1352,7 @@ function fetchPostseason(year,week) {
         let add = true;
         let home = obj.events[b].competitions[0].competitors[0].homeAway === 'home' ? obj.events[b].competitions[0].competitors[0].id : obj.events[b].competitions[0].competitors[1].id;
         let away = obj.events[b].competitions[0].competitors[0].homeAway === 'away' ? obj.events[b].competitions[0].competitors[0].id : obj.events[b].competitions[0].competitors[1].id;
-        let w = obj.events[b].week.number + regularSeason;
+        let w = obj.events[b].week.number > 4 ? obj.events[b].week.number + regularSeason - 1 : obj.events[b].week.number + regularSeason; // Accounting for Pro-Bowl
         e = {'week':w,
             'homeProTeamId':parseInt(home),
             'awayProTeamId':parseInt(away),
@@ -1530,7 +1538,7 @@ function fetchNFLWeeklyScores(){
     if (year == null) {
       year = obj.season.year;
     }
-    
+
     let week = obj.season.type === 3 ? regularSeason + obj.week.number : obj.week.number;
 
     // Checks if preseason, if not, pulls in score data
