@@ -1,5 +1,6 @@
 # Google Sheets / Forms NFL Pick'Ems and Survivor Pool 
 ## Creation and Management Tool for Running your Own Group
+## Update July 2024 -- the ESPN API isn't active right now and hopefully will work when the season approaches, but you will receive an error when using this script currently
 
 Google Script to run within Google Sheets that creates a Google Form to create a season-long NFL Pick'Ems league run through a Google Sheet with a weekly updating Google Form to receive responses from members.
 
