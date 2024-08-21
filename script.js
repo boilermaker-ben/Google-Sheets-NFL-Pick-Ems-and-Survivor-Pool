@@ -4,10 +4,14 @@
 // Created by Ben Powers
 // ben.powers.creative@gmail.com
 
+// 20240820 AustinOrphan
+// Altered script to only use ESPN's api v2. Also made some fixes for when setting things up for the regular season during preseason.
+// My changes aren't super pretty, but I think I made it work out just fine
+
 // CONSTANTS
 const nflTeams = 32;
-const maxGames = nflTeams/2;
 const regularSeason = 18;
+const maxGames = regularSeason - 1;
 const postSeason = 4; // Week 4 of postseason is omitted for Pro Bowl, Super Bowl displays as week 5
 
 // PRELIM SETUP- Creation of all needed initial sheets, prompt to import NFL
@@ -1000,6 +1004,8 @@ function fetchWeek() {
           } else {
             week = obj.week.number;
           }
+        // } else {
+          // week = obj.week.number - 4;
         }
         return week;
       }
@@ -1051,9 +1057,51 @@ function fetchWeeks() {
 // ESPN TEAMS - Fetches the ESPN-available API data on NFL teams
 function fetchTeamsESPN() {
   let year = fetchYear(); // First array value is year
-  let obj = JSON.parse(UrlFetchApp.fetch('http://fantasy.espn.com/apis/v3/games/ffl/seasons/' + year + '?view=proTeamSchedules').getContentText());
-  let objTeams = obj.settings.proTeams;
+  let urlPreFix = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/' + year + '/teams?page=';
+  let obj = JSON.parse(UrlFetchApp.fetch(urlPreFix + '1').getContentText());
+  let obj2 = JSON.parse(UrlFetchApp.fetch(urlPreFix + '2').getContentText());
+  let objLinks = obj.items;
+  let objLinks2 = obj2.items;
+  let objTeams = [];
+  let mapTeamsIds = {};
+  for (let a = 0; a < obj.count; a++) {
+    let useMe = objLinks;
+    let b = a;
+    if (a >= objLinks.length) {
+      b = a - objLinks.length;
+      useMe = objLinks2;
+    }
+    let urlPreFixTeam = 'https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/' + year + '/teams';
+    let idy = JSON.parse(UrlFetchApp.fetch(useMe[b].$ref).getContentText()).id;
+    objTeams.push(JSON.parse(UrlFetchApp.fetch((urlPreFixTeam + '/' + idy)).getContentText()));
+    objTeams[a].byeWeek = 0;
+    objTeams[a].competitions = [];
+    mapTeamsIds[objTeams[a].id] = a;
+  }
+  obj = JSON.parse(UrlFetchApp.fetch('http://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/' + year + '/types/2/weeks?lang=en&region=us').getContentText());
+  objLinks = obj.items;
+  let objWeeks = [];
+  for (let a = 0; a < objLinks.length; a++) {
+    objWeeks.push(JSON.parse(UrlFetchApp.fetch(objLinks[a].$ref).getContentText()));
+    for (let b = 0; b < 0 + objWeeks[a].teamsOnBye?.length; b++) {
+      let idlink = JSON.parse(UrlFetchApp.fetch(objWeeks[a].teamsOnBye[b].$ref));
+      let id = idlink.id;
+      objTeams[mapTeamsIds[id]].byeWeek = a + 1;
+    }
+  }
+
+  
+  // let obj = JSON.parse(UrlFetchApp.fetch('http://fantasy.espn.com/apis/v3/games/ffl/seasons/' + year + '?view=proTeamSchedules').getContentText());
+  // let objTeams = obj.settings.proTeams;
   return objTeams;
+}
+
+function fetchTeamIdMap(objTeams) {
+  let teamIdMap = {};
+  for (a = 0; a < nflTeams; a++) {
+    teamIdMap[objTeams[a].id] = a;
+  }
+  return teamIdMap;
 }
 
 //------------------------------------------------------------------------
@@ -1067,6 +1115,7 @@ function fetchNFL(week) {
   let abbr, name, maxRows, maxCols;
   const year = fetchYear();
   const objTeams = fetchTeamsESPN();
+  const teamIdMap = fetchTeamIdMap(objTeams);
   const teamsLen = objTeams.length;
   let arr = [];
   let nfl = [];
@@ -1079,7 +1128,7 @@ function fetchNFL(week) {
   for (let a = 0 ; a < teamsLen ; a++ ) {
     arr = [];
     if(objTeams[a].id != 0 ) {
-      abbr = objTeams[a].abbrev.toUpperCase();
+      abbr = objTeams[a].abbreviation.toUpperCase();
       name = objTeams[a].name;
       location = objTeams[a].location;
       espnId.push(objTeams[a].id);
@@ -1095,7 +1144,7 @@ function fetchNFL(week) {
   let ids = [];
   let abbrs = [];
   for (let a = 0 ; a < espnId.length ; a++ ) {
-    ids.push(espnId[a].toFixed(0));
+    ids.push(espnId[a]);//.toFixed(0));
     abbrs.push(espnAbbr[a]);
   }
   // Declaration of variables
@@ -1109,10 +1158,10 @@ function fetchNFL(week) {
   let allMinutes = [];
   let byeIndex, id;
   let date, hour, minute;
-  let weeks = Object.keys(objTeams[0].proGamesByScoringPeriod).length;
-  if ( objTeams[0].byeWeek > 0 ) {
-    weeks++;
-  }
+  let weeks = regularSeason;// objWeeks.count;//Object.keys(objTeams[0].proGamesByScoringPeriod).length;
+  // if ( objTeams[0].byeWeek > 0 ) {
+  //   weeks++;
+  // }
 
 
   location = [];
@@ -1120,7 +1169,7 @@ function fetchNFL(week) {
   if (week == null) {   
     week = fetchWeek();
   }
-  
+
   let post = [];
   try {
     if (week >= regularSeason) {
@@ -1145,6 +1194,18 @@ function fetchNFL(week) {
     Logger.log('Issue pulling postseason games');
   }
 
+  for (let a = 1; a <= weeks; a++) {
+    let urlWeekEvents = "http://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/" + year + "/types/2/weeks/" + a + "/events?lang=en&region=us";
+    let weekEvents = JSON.parse(UrlFetchApp.fetch(urlWeekEvents).getContentText());
+    for (let b = 0; b < weekEvents.count ; b++) {
+      let event = JSON.parse(UrlFetchApp.fetch(weekEvents.items[b].$ref).getContentText());
+      let competition = JSON.parse(UrlFetchApp.fetch(event.competitions[0].$ref).getContentText());
+      for (let c = 0; c < competition.competitors.length; c++) {
+        teamId = competition.competitors[c].id;
+        objTeams[teamIdMap[teamId]].competitions.push(competition);
+      }
+    }
+  }
   for (let a = 0 ; a < teamsLen ; a++ ) {
     
     arr = [];
@@ -1152,15 +1213,15 @@ function fetchNFL(week) {
     dates = [];
     hours = [];
     minutes = [];
-    byeIndex = objTeams[a].byeWeek.toFixed(0);
+    byeIndex = objTeams[a].byeWeek;
     if ( byeIndex != 0 ) {
-      id = objTeams[a].id.toFixed(0);
+      id = objTeams[a].id;//.toFixed(0);
       arr.push(abbrs[ids.indexOf(id)]);
       home.push(abbrs[ids.indexOf(id)]);
       dates.push(abbrs[ids.indexOf(id)]);
       hours.push(abbrs[ids.indexOf(id)]);
       minutes.push(abbrs[ids.indexOf(id)]);
-      for (let b = 1 ; b <= weeks ; b++ ) {
+      for (let b = 1 ; b <= regularSeason ; b++ ) {
         if ( b == byeIndex ) {
           arr.push('BYE');
           home.push('BYE');
@@ -1169,25 +1230,30 @@ function fetchNFL(week) {
           minutes.push('BYE');
         } else {
           try {
-            if ( objTeams[a].proGamesByScoringPeriod[b][0].homeProTeamId.toFixed(0) === id ) {
-              arr.push(abbrs[ids.indexOf(objTeams[a].proGamesByScoringPeriod[b][0].awayProTeamId.toFixed(0))]);
-              home.push(1);
-              date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
-              dates.push(date);
-              hour = date.getHours();
-              hours.push(hour);
-              minute = date.getMinutes();
-              minutes.push(minute);
-            } else {
-              arr.push(abbrs[ids.indexOf(objTeams[a].proGamesByScoringPeriod[b][0].homeProTeamId.toFixed(0))]);
-              home.push(0);
-              date = new Date(objTeams[a].proGamesByScoringPeriod[b][0].date);
-              dates.push(date);
-              hour = date.getHours();
-              hours.push(hour);
-              minute = date.getMinutes();
-              minutes.push(minute);
+            let e = b - 1;
+            if (b > byeIndex) {
+              e = e - 1;
             }
+            let competitionD = objTeams[a].competitions[e]
+            let c = 0;
+            let d = 1;
+            if (competitionD.competitors[1].id === id) {
+              c = 1;
+              d = 0;
+            }
+            if (competitionD.competitors[c].homeAway == 'home') {
+              home.push(1);
+            }
+            else {
+              home.push(0);
+            }
+              arr.push(abbrs[ids.indexOf(competitionD.competitors[d].id)]);
+              date = new Date(competitionD.date);
+              dates.push(date);
+              hour = date.getHours();
+              hours.push(hour);
+              minute = date.getMinutes();
+              minutes.push(minute);
           }
           catch (err) {
             Logger.log('No matchup for scoring period ' + b + ' for ' + abbrs[ids.indexOf(id)])
@@ -5358,6 +5424,7 @@ function resetSpreadsheet() {
   }
   
 }
+
 
 
 
