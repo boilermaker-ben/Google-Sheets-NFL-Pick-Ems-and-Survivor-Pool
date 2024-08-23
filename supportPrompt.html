@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+    .dialog-container {
+      position: fixed;
+      top: -30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 300px;
+      box-sizing: border-box;
+      padding: 0px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    h2 {
+      font-family: 'Montserrat', sans-serif;
+    }
+    .hidden {
+      display: none;
+    }
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 300px;
+      background-color: #555;
+      color: #fff;
+      text-align: left;
+      border-radius: 5px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+    .button {
+      background-color: #fff; /* White background */
+      color: #007bff; /* Blue text */
+      border: 1px solid #007bff; /* Blue border */
+      border-radius: 50px; /* Fully rounded corners */
+      padding: 10px 30px; /* Adjust padding for pill shape */
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+      display: inline-block;
+      text-align: center;
+    }
+    .button:hover {
+      background-color: #e9f0ff; /* Light blue background on hover */
+      color: #0056b3; /* Darker blue text on hover */
+      border-color: #0056b3; /* Darker blue border on hover */
+    }
+    .button:active {
+      transform: scale(0.98); /* Slightly smaller on click */
+    }
+    .button.cancel {
+      color: #6c757d; /* Secondary text color */
+      border-color: #6c757d; /* Secondary border color */
+    }
+    .button.cancel:hover {
+      background-color: #e2e6ea; /* Light gray background on hover */
+      color: #343a40; /* Darker gray text on hover */
+      border-color: #343a40; /* Darker gray border on hover */
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <p><b>Having trouble?</b></p>
+  <p>I aim to be responsive when it comes to requesting support if something breaks, but I have a wife and five young kiddos and a full-time job that keep me busy. <a href="mailto:benpowerscreative@gmail.com?subject=Hello" target="_blank">Send me an email</a> or visit the <a href="https://github.com/boilermaker-ben/Google-Sheets-NFL-Pick-Ems-and-Survivor-Pool" target="_blank">GitHub</a> site if you need help.</p>
+  <p>Feel free to share any ideas for improvements or additional features you'd like to see as well!</p>
+  <div></div>
+  <p><b>Support my work</b></p>
+  <p>If you've enjoyed using my work, that's what I'm most excited about. If you're feeling generous and wouldn't be extending yourself, you can support my efforts via <a href="https://buymeacoffee.com/benpowers" target="_blank">Buy Me a Coffee</a>.</p>
+  <p>Cheers,</p>
+  <p>Ben</p>
+  
+</body>
+</html>
