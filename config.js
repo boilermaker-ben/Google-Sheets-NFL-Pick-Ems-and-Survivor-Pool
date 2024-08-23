@@ -209,7 +209,7 @@ function showConfigDialog() {
 function showSupportDialog() {
   let html = HtmlService.createHtmlOutputFromFile('supportPrompt.html')
       .setWidth(600)
-      .setHeight(380);
+      .setHeight(410);
   SpreadsheetApp.getUi().showModalDialog(html, ' ');
 }
 
