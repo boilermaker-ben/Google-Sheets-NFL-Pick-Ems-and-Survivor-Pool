@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+    .dialog-container {
+      position: fixed;
+      top: -30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%; 
+      max-width: 500px; 
+      box-sizing: border-box;
+      padding: 0px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    h2 {
+      font-family: 'Montserrat', sans-serif;
+    }
+    .hidden {
+      display: none;
+    }
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 300px;
+      background-color: #555;
+      color: #fff;
+      text-align: left;
+      border-radius: 5px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%; /* Position the tooltip above the text */
+      left: 50%;
+      margin-left: -20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+    .button {
+      background-color: #fff; /* White background */
+      color: #007bff; /* Blue text */
+      border: 1px solid #007bff; /* Blue border */
+      border-radius: 50px; /* Fully rounded corners */
+      padding: 10px 30px; /* Adjust padding for pill shape */
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+      display: inline-block;
+      text-align: center;
+    }
+    .button:hover {
+      background-color: #e9f0ff; /* Light blue background on hover */
+      color: #0056b3; /* Darker blue text on hover */
+      border-color: #0056b3; /* Darker blue border on hover */
+    }
+    .button:active {
+      transform: scale(0.98); /* Slightly smaller on click */
+    }
+    .button.cancel {
+      color: #6c757d; /* Secondary text color */
+      border-color: #6c757d; /* Secondary border color */
+    }
+    .button.cancel:hover {
+      background-color: #e2e6ea; /* Light gray background on hover */
+      color: #343a40; /* Darker gray text on hover */
+      border-color: #343a40; /* Darker gray border on hover */
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <p>Select one or both of the following options:</p>
+    <form id="configForm">
+      <input type="checkbox" id="pickems" name="initialOptions" value="pickemsInclude" checked onchange="handleOptionChange()">
+      <label for="pickems">Pick 'ems Pool</label>
+      <br>
+      <input type="checkbox" id="survivor" name="initialOptions" value="survivorInclude" checked onchange="handleOptionChange()">
+      <label for="survivor">Survivor Pool</label>
+
+      <div id="additionalOptions" class="hidden">
+        <p>Select additional options and hover for more details:</p>
+        <div class="tooltip">
+          <input type="checkbox" id="thursday" name="additionalOptions" value="tnfExclude">
+          <label for="thursday">Exclude TNF games</label>
+          <span class="tooltiptext">Most groups include these games, but if you'd prefer to have picks only made for the weekend games and MNF, then select this option.</span>
+        </div><br>
+        <div class="tooltip">
+          <input type="checkbox" id="monday" name="additionalOptions" value="mnfExclude">
+          <label for="monday">Hide tally of MNF correct picks</label>
+          <span class="tooltiptext">Exclude the running tally of Monday Night Football games in the pool. It's recommended to keep this tally column and tracking, as these are often used as another sub-competition or use for an end-of-season tiebreaker.</span>
+        </div><br>
+        <div class="tooltip">
+          <input type="checkbox" id="bonus" name="additionalOptions" value="bonusInclude">
+          <label for="bonus">Bonus multipliers visible for each game</label>
+          <span class="tooltiptext">This feature will make a row visible within each weekly sheet to modify a 2x or 3x multiplier for each game to customize scoring further. Normally hidden by default.</span>
+        </div><br>
+        <div class="tooltip">
+          <input type="checkbox" id="tiebreaker" name="additionalOptions" value="tiebreakerExclude">
+          <label for="bonus">No weekly tiebreaker</label>
+          <span class="tooltiptext">Select this to disable having a weekly tiebreaker based on the member's guess that is closest to the combined score of the final game of the week. Normally enabled by default to avoid ties.</span>
+        </div><br>
+        <div class="tooltip">
+          <input type="checkbox" id="comments" name="additionalOptions" value="commentsExclude">
+          <label for="bonus">Exclude comment box in form</label>
+          <span class="tooltiptext">Comment entries within the form submission to encourage camaraderie and/or verbal sparring. Select this to EXCLUDE a comment box.</span>
+        </div><br><br>
+        <div class="tooltip">
+          <input type="checkbox" id="membership" name="additionalOptions" value="membershipLocked">
+          <label for="membership">Lock membership upon initial creation</label>
+          <span class="tooltiptext">Prevent new members to join from the Google Form. By default the script allows for open membership to allow new users to submit their name via the form. The group can be locked later via the menu.</span>
+        </div><br><br>
+      </div>
+
+      <div id="additionalSurvivorOptions" class="hidden">
+        <p>Select additional options and hover for more details:</p>
+        <div class="tooltip">
+          <input type="checkbox" id="thursday" name="additionalOptions" value="tnfExclude">
+          <label for="thursday">Exclude TNF games</label>
+          <span class="tooltiptext">Most groups include these games, but if you'd prefer to have picks only made for the weekend games and MNF, then select this option.</span>
+        </div><br><br>
+        <div class="tooltip">
+          <input type="checkbox" id="membership" name="additionalOptions" value="membershipLocked">
+          <label for="membership">Lock membership upon initial creation</label>
+          <span class="tooltiptext">Prevent new members to join from the Google Form. By default the script allows for open membership to allow new users to submit their name via the form. The group can be locked later via the menu.</span>
+        </div><br><br>
+      </div>
+
+      <div id="noOptions" class="hidden">
+        <p>You must select at least one of the above group types before proceeding.</p>
+        <br>
+      </div>
+
+      <div id="warningMessage" class="hidden" style="color: red; font-weight: bold;">
+        <br>
+        You must select at least one of the primary options before proceeding.
+        <br><br><br>
+      </div>
+
+      <button type="button" id="submitButton" class="button" onclick="handleSubmit()">Submit</button>
+      <button type="button" class="button cancel" onclick="google.script.host.close()">Cancel</button>
+    </form>
+  </div>
+  <script>
+    function handleSubmit(e) {
+      const pickemsChecked = document.getElementById('pickems').checked;
+      const survivorChecked = document.getElementById('survivor').checked;
+
+      if (!pickemsChecked && !survivorChecked) {
+        document.getElementById('noOptions').classList.add('hidden');
+        document.getElementById('warningMessage').classList.remove('hidden');
+        resizeDialog();
+      } else {
+        const form = document.getElementById('configForm');
+        let initialOptions = Array.from(form.initialOptions)
+          .filter(option => option.checked)
+          .map(option => option.value);
+        let additionalOptions = Array.from(form.additionalOptions)
+          .filter(option => option.checked)
+          .map(option => option.value);
+        const values = initialOptions.concat(additionalOptions);
+
+        // // THESE LINES WERE REVISED TO CLOSE CORRECTLY IMMEDIATELY
+        // google.script.run
+        //   .withSuccessHandler(() => {
+        //     google.script.host.close();
+        //   })
+        //   .gatherInput(values);
+
+        google.script.run.gatherInput(values);
+        google.script.host.close();
+      };
+    };
+    
+    function closeIt(){
+      google.script.host.close()
+    };
+    
+    function handleOptionChange() {
+      const pickems = document.getElementById('pickems').checked;
+      const survivor = document.getElementById('survivor').checked;
+
+      if (pickems && survivor) {
+        document.getElementById('additionalOptions').classList.remove('hidden');
+        document.getElementById('additionalSurvivorOptions').classList.add('hidden');
+        document.getElementById('noOptions').classList.add('hidden');
+        document.getElementById('warningMessage').classList.add('hidden');
+      } else if (survivor) {
+        document.getElementById('additionalOptions').classList.add('hidden');
+        document.getElementById('additionalSurvivorOptions').classList.remove('hidden');
+        document.getElementById('noOptions').classList.add('hidden');
+        document.getElementById('warningMessage').classList.add('hidden');
+      } else if (pickems) {
+        document.getElementById('additionalOptions').classList.remove('hidden');
+        document.getElementById('additionalSurvivorOptions').classList.add('hidden');
+        document.getElementById('noOptions').classList.add('hidden');
+        document.getElementById('warningMessage').classList.add('hidden');
+      } else {
+        document.getElementById('additionalOptions').classList.add('hidden');
+        document.getElementById('additionalSurvivorOptions').classList.add('hidden');
+        document.getElementById('noOptions').classList.remove('hidden');
+      }
+      resizeDialog();
+    }
+
+    function resizeDialog() {
+      google.script.host.setHeight(document.documentElement.scrollHeight);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      handleOptionChange();
+    });
+  </script>
+</body>
+</html>
