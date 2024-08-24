@@ -1,7 +1,7 @@
 /** GOOGLE SHEETS PICK 'EMS & SURVIVOR
  * League Creator & Management Platform Tool
  * v2.6
- * 08/23/2024
+ * 08/24/2024
  * 
  * Created by Ben Powers
  * ben.powers.creative@gmail.com
