@@ -112,6 +112,8 @@ function onOpen() {
   }
 }
 
+//------------------------------------------------------------------------
+// CREATES SIMPLE MENU
 function initializeMenu(scriptProperties,init) {
   if (scriptProperties == undefined) {
     scriptProperties = PropertiesService.getScriptProperties();
@@ -123,7 +125,7 @@ function initializeMenu(scriptProperties,init) {
   if (!init) {
     simpleMenu = true;
   } else if (checkOnOpenTriggers()) {
-      createMenu(undefined,true);
+    createMenu(undefined,true);
   } else {
     simpleMenu = true;
   }
@@ -135,6 +137,8 @@ function initializeMenu(scriptProperties,init) {
   }
 }
 
+//------------------------------------------------------------------------
+// CHECK FOR ANY ONOPEN TRIGGERS IN PLACE
 function checkOnOpenTriggers() {
   // Get all triggers for the current script
   const triggers = ScriptApp.getProjectTriggers();
@@ -146,6 +150,8 @@ function checkOnOpenTriggers() {
   return false;
 }
 
+//------------------------------------------------------------------------
+// CHECKS IF TZ PROP SET AND PROMPTS IF NOT
 function timezoneCheck(ui,scriptProperties,lost) {
   if (scriptProperties == undefined) {
     scriptProperties = PropertiesService.getScriptProperties();
@@ -169,6 +175,8 @@ function timezoneCheck(ui,scriptProperties,lost) {
       scriptProperties.setProperty('tz',tz);
       return true;
     }
+  } else {
+    return true;
   }
 }
 
