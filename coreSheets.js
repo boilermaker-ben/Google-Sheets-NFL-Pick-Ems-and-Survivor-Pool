@@ -11,7 +11,7 @@ function outcomesSheet(ss) {
   }
   sheet.clearFormats();
   sheet.setTabColor(dayColorsFilled[dayColorsFilled.length-1]);
-  
+
   let data;
   try {
     data = ss.getRangeByName(league).getValues();
@@ -21,7 +21,7 @@ function outcomesSheet(ss) {
     fetchSchedule();
     data = ss.getRangeByName(league).getValues();
   }
-  
+
   let tnfInclude = true;
   try{
     tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
@@ -48,7 +48,7 @@ function outcomesSheet(ss) {
     sheet.deleteColumns(headers.length + 1, maxCols - headers.length);
   }
   maxCols = sheet.getMaxColumns();
-  
+
   let rowTarget = (headerRow + maxGames); // maxGames is a global variable
   let maxRows = sheet.getMaxRows();
   if (maxRows < rowTarget) {
@@ -57,7 +57,7 @@ function outcomesSheet(ss) {
     sheet.deleteRows(rowTarget + 1, maxRows - rowTarget);
   }
   maxRows = sheet.getMaxRows();
-  
+
   sheet.getRange(1,1,maxRows,maxCols).clearDataValidations();
   sheet.getRange(1,1,maxRows,maxCols).clearNote();
 
@@ -148,7 +148,7 @@ function outcomesSheet(ss) {
 // UPDATE OUTCOMES - Updates the data validation, color scheme, and matchups for a specific week on the winners sheet
 function outcomesSheetUpdate(ss,week,equations) {
   const startRow = 3;
-  
+
   ss = fetchSpreadsheet(ss);
   if (week == null) {
     week = fetchWeek();
@@ -178,7 +178,7 @@ function outcomesSheetUpdate(ss,week,equations) {
     }
   }
   if (equations != true) {
-    
+
     // Clears data validation and notes
     let matchups = ss.getRangeByName(league + '_OUTCOMES_' + week);
     matchups.clearDataValidations();
@@ -335,7 +335,7 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
   } else if (sheet.getMaxColumns() < 4 ) {
     sheet.insertColumnsAfter(sheet.getMaxColumns(),4-sheet.getMaxColumns());
   }
-  
+
   sheet.getRange(1,1,endData,2).setValues(array);
   sheet.getRange(1,1,sheet.getMaxRows(),sheet.getMaxColumns()).breakApart();
   sheet.getRange(1,2,1,4).mergeAcross();
@@ -354,7 +354,7 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
   sheet.getRange(endData+1,3).setValue('SHAREABLE');
   sheet.getRange(endData+2,3).setValue(ss.getUrl().slice(0,-5));
   sheet.getRange(endData+1,4).setValue('EDITABLE');
-  sheet.getRange(endData+2,4).setValue(ss.getUrl()); 
+  sheet.getRange(endData+2,4).setValue(ss.getUrl());
   // Sets all named ranges of those values in array from above
   for (let a = 0; a < arrayNamedRanges.length; a++) {
     ss.setNamedRange(arrayNamedRanges[a],sheet.getRange(arrayNamedRanges.indexOf(arrayNamedRanges[a])+1,2));
@@ -366,7 +366,7 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
   // Rules for dropdowns on Config sheet
   let rule = SpreadsheetApp.newDataValidation().requireValueInList(weeksArr, true).build();
   sheet.getRange(2,2).setDataValidation(rule);
-  
+
   rule = SpreadsheetApp.newDataValidation().requireValueInList([true,false], true).build();
   let range = sheet.getRange(5,2,dataValidationCount,1);
   range.setDataValidation(rule);
@@ -374,7 +374,7 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
     .requireValueInList(weeksArr)
     .build();
   sheet.getRange(endData,2).setDataValidation(rule);
-  
+
   // TRUE COLOR FORMAT
   range = sheet.getRange(5,2,trueFalseCount,1);
   let formatTrue = SpreadsheetApp.newConditionalFormatRule()
@@ -424,14 +424,14 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
   return sheet;
 }
 
-// MEMBERS Sheet Creation / Adjustment 
+// MEMBERS Sheet Creation / Adjustment
 function memberSheet(ss,members) {
   ss = fetchSpreadsheet(ss);
   if (members == null) {
     members = memberList(ss);
   }
   let totalMembers = members.length;
-  
+
   let sheetName = 'MEMBERS';
   let sheet = ss.getSheetByName(sheetName);
   if (sheet == null) {
@@ -439,7 +439,7 @@ function memberSheet(ss,members) {
     sheet = ss.getSheetByName(sheetName);
   }
   sheet.setTabColor(configTabColor);
-  
+
   let rows = Math.max(members.length,1);
   let maxRows = sheet.getMaxRows();
   if ( rows < maxRows ) {
@@ -488,12 +488,6 @@ function membersSheetProtected() {
 }
 
 // MEMBERS Sheet Locking (protection)
-function membersSheetLock() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('MEMBERS');
-  sheet.protect().setDescription('MEMBERS PROTECTION');
-  Logger.log('locked MEMBERS');
-}
 
 // MEMBERS Sheet Unlocking (remove protection);
 function membersSheetUnlock() {
@@ -508,7 +502,7 @@ function membersSheetUnlock() {
   }
   catch (err) {
     Logger.log('membersSheetUnlock error: ' + err.message + ' \r\n' + err.stack);
-  }  
+  }
 }
 
 // TOTAL Sheet Creation / Adjustment
@@ -528,7 +522,7 @@ function totSheet(ss,weeks,members) {
     weeks = fetchWeeks();
   }
   let totalMembers = members.length;
-  
+
   let rows = totalMembers + 2;
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
@@ -552,31 +546,31 @@ function totSheet(ss,weeks,members) {
     sheet.setColumnWidth(a+3,30);
     sheet.getRange(2,a+3).setFormula('=iferror(arrayformula(countif(filter('+league+'_PICKS_'+(a+1)+',NAMES_'+(a+1)+'=$A2)='+league+'_PICKEM_OUTCOMES_'+(a+1)+',true)),)');
   }
-  
+
   let range = sheet.getRange(1,1,rows,maxCols);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
-  sheet.getRange(2,1,totalMembers,1).setValues(members); 
+  sheet.getRange(2,1,totalMembers,1).setValues(members);
   sheet.getRange(1,1,totalMembers+2,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
   sheet.setColumnWidth(2,70);
-  
+
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
   sheet.getRange(totalMembers+2,1,1,weeks+2).setBackground('#e6e6e6');
-  
+
   sheet.getRange(2,2,totalMembers+1,weeks+1).setNumberFormat('#.#');
 
   sheet.setFrozenColumns(2);
-  sheet.setFrozenRows(1); 
+  sheet.setFrozenRows(1);
 
   // SET OVERALL NAMES Range
   let rangeOverallTotNames = sheet.getRange('R2C1:R'+rows+'C1');
-  ss.setNamedRange('TOT_OVERALL_NAMES',rangeOverallTotNames); 
-  sheet.clearConditionalFormatRules(); 
+  ss.setNamedRange('TOT_OVERALL_NAMES',rangeOverallTotNames);
+  sheet.clearConditionalFormatRules();
   // OVERALL TOTAL GRADIENT RULE
   let rangeOverallTot = sheet.getRange('R2C2:R'+rows+'C2');
   ss.setNamedRange('TOT_OVERALL',rangeOverallTot);
@@ -606,11 +600,11 @@ function totSheet(ss,weeks,members) {
   formatRules.push(formatRuleOverall);
   formatRules.push(formatRuleOverallTot);
   sheet.setConditionalFormatRules(formatRules);
-  
+
   overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',true);
   overallMainFormulas(sheet,totalMembers,weeks,'TOT',true);
-  
-  return sheet;  
+
+  return sheet;
 }
 
 // RNK Sheet Creation / Adjustment
@@ -624,7 +618,7 @@ function rnkSheet(ss,weeks,members) {
   }
   sheet.clear();
   sheet.setTabColor(generalTabColor);
-  
+
   if (weeks == null) {
     weeks = fetchWeeks();
   }
@@ -633,7 +627,7 @@ function rnkSheet(ss,weeks,members) {
   }
 
   let totalMembers = members.length;
-  
+
   let rows = totalMembers + 1;
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
@@ -649,28 +643,28 @@ function rnkSheet(ss,weeks,members) {
   maxCols = sheet.getMaxColumns();
   sheet.getRange(1,1).setValue('RANKS');
   sheet.getRange(1,2).setValue('AVERAGE');
-  
+
   let range = sheet.getRange(1,1,rows,maxCols);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
-  sheet.getRange(2,1,totalMembers,1).setValues(members); 
+  sheet.getRange(2,1,totalMembers,1).setValues(members);
   sheet.getRange(1,1,totalMembers+1,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
   sheet.setColumnWidth(2,70);
-  
+
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
-  
+
   sheet.setFrozenColumns(2);
   sheet.setFrozenRows(1);
 
   // SET OVERALL RANK NAMES Range
   let rangeOverallTotRnkNames = sheet.getRange('R2C1:R'+rows+'C1');
-  ss.setNamedRange('TOT_OVERALL_RNK_NAMES',rangeOverallTotRnkNames);  
-  sheet.clearConditionalFormatRules(); 
+  ss.setNamedRange('TOT_OVERALL_RNK_NAMES',rangeOverallTotRnkNames);
+  sheet.clearConditionalFormatRules();
   // RANKS TOTAL GRADIENT RULE
   let rangeOverallRankTot = sheet.getRange('R2C2:R'+rows+'C2');
   ss.setNamedRange('TOT_OVERALL_RANK',rangeOverallRankTot);
@@ -700,11 +694,11 @@ function rnkSheet(ss,weeks,members) {
   formatRules.push(formatRuleOverall);
   formatRules.push(formatRuleOverallTot);
   sheet.setConditionalFormatRules(formatRules);
-  
+
   overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',false);
   overallMainFormulas(sheet,totalMembers,weeks,'RANK',false);
-  
-  return sheet;  
+
+  return sheet;
 }
 
 // PCT Sheet Creation / Adjustment
@@ -720,7 +714,7 @@ function pctSheet(ss,weeks,members) {
 
   sheet.clear();
   sheet.setTabColor(generalTabColor);
-  
+
   if (weeks == null) {
     weeks = fetchWeeks();
   }
@@ -728,7 +722,7 @@ function pctSheet(ss,weeks,members) {
     members = memberList(ss);
   }
   let totalMembers = members.length;
-  
+
   let rows = totalMembers + 2; // 2 additional rows
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
@@ -750,23 +744,23 @@ function pctSheet(ss,weeks,members) {
     sheet.getRange(1,a+3).setValue(a+1);
     sheet.setColumnWidth(a+3,48);
   }
-  
+
   let range = sheet.getRange(1,1,rows,maxCols);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
-  sheet.getRange(2,1,totalMembers,1).setValues(members); 
+  sheet.getRange(2,1,totalMembers,1).setValues(members);
   sheet.getRange(1,1,totalMembers+2,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
   sheet.setColumnWidth(2,70);
-  
+
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
-  sheet.getRange(totalMembers+2,1,1,weeks+2).setBackground('#e6e6e6'); 
+  sheet.getRange(totalMembers+2,1,1,weeks+2).setBackground('#e6e6e6');
 
-  sheet.getRange(2,2,totalMembers+1,1).setNumberFormat("##.#%");  
+  sheet.getRange(2,2,totalMembers+1,1).setNumberFormat("##.#%");
   sheet.setFrozenColumns(2);
   sheet.setFrozenRows(1);
 
@@ -781,13 +775,13 @@ function pctSheet(ss,weeks,members) {
   let formatRuleOverallPctTot = SpreadsheetApp.newConditionalFormatRule()
     .setGradientMaxpointWithValue("#75F0A1", SpreadsheetApp.InterpolationType.NUMBER, '=max(indirect("TOT_OVERALL_PCT"))') // Max value of all correct picks
     .setGradientMidpointWithValue("#FFFFFF", SpreadsheetApp.InterpolationType.NUMBER, '=average(indirect("TOT_OVERALL_PCT"))') // Generates Median Value
-    .setGradientMinpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, '=min(indirect("TOT_OVERALL_PCT"))') // Min value of all correct picks  
+    .setGradientMinpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, '=min(indirect("TOT_OVERALL_PCT"))') // Min value of all correct picks
     .setRanges([rangeOverallTotPct])
-    .build();  
+    .build();
   // PCT SHEET GRADIENT RULE
   range = sheet.getRange('R2C3:R'+(rows-1)+'C'+(weeks+2));
   ss.setNamedRange('TOT_WEEKLY_PCT',range);
-  range = sheet.getRange('R2C3:R'+rows+'C'+(weeks+2)); 
+  range = sheet.getRange('R2C3:R'+rows+'C'+(weeks+2));
   let formatRuleOverallPctHigh = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=and(indirect(\"R[0]C[0]\",false)>0,indirect(\"R[0]C[0]\",false)=max(indirect(\"R2C[0]:R'+maxRows+'C[0]\",false)))')
     .setBackground('#75F0A1')
@@ -809,7 +803,7 @@ function pctSheet(ss,weeks,members) {
   overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',true);
   overallMainFormulas(sheet,totalMembers,weeks,'PCT',true);
 
-  return sheet;  
+  return sheet;
 }
 
 // MNF Sheet Creation / Adjustment
@@ -825,7 +819,7 @@ function mnfSheet(ss,weeks,members) {
 
   sheet.clear();
   sheet.setTabColor(generalTabColor);
-  
+
   if (weeks == null) {
     weeks = fetchWeeks();
   }
@@ -833,7 +827,7 @@ function mnfSheet(ss,weeks,members) {
     members = memberList(ss);
   }
   let totalMembers = members.length;
-  
+
   Logger.log('Checking for Monday games, if any');
   let data = ss.getRangeByName(league).getValues();
   let text = '0';
@@ -844,7 +838,7 @@ function mnfSheet(ss,weeks,members) {
       mondayNightGames[(data[a][0]-1)]++;
     }
   }
-  let rows = totalMembers + 1;
+  let rows = totalMembers + 2; // +1 for header row and +1 for footer/stat row
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
     sheet.deleteRows(rows,maxRows-rows);
@@ -865,7 +859,7 @@ function mnfSheet(ss,weeks,members) {
   range.setVerticalAlignment('middle');
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
-  sheet.getRange(2,1,totalMembers,1).setValues(members); 
+  sheet.getRange(2,1,totalMembers,1).setValues(members);
   sheet.getRange(1,1,totalMembers+1,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
   sheet.setColumnWidth(2,70);
@@ -873,7 +867,7 @@ function mnfSheet(ss,weeks,members) {
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
-  
+
   let headers = [];
   for ( let a = 0; a < weeks; a++ ) {
     if (mondayNightGames[a] == 2) {
@@ -893,13 +887,13 @@ function mnfSheet(ss,weeks,members) {
   sheet.getRange(1,3,1,weeks).setValues([headers]);
 
   sheet.setFrozenColumns(2);
-  sheet.setFrozenRows(1); 
+  sheet.setFrozenRows(1);
 
-  sheet.clearConditionalFormatRules(); 
+  sheet.clearConditionalFormatRules();
 
   // SET MNF NAMES Range
   let rangeMnfNames = sheet.getRange('R2C1:R'+rows+'C1');
-  ss.setNamedRange('MNF_NAMES',rangeMnfNames); 
+  ss.setNamedRange('MNF_NAMES',rangeMnfNames);
   // MNF TOTAL GRADIENT RULE
   let rangeMnfTot = sheet.getRange('R2C2:R'+rows+'C2');
   ss.setNamedRange('MNF',rangeMnfTot);
@@ -932,7 +926,7 @@ function mnfSheet(ss,weeks,members) {
     .setFontColor('#FFC4CA')
     .setBold(true)
     .setRanges([range])
-    .build();    
+    .build();
   let formatRules = sheet.getConditionalFormatRules();
   formatRules.push(formatRuleTwoCorrect);
   formatRules.push(formatRuleOneCorrect);
@@ -943,7 +937,7 @@ function mnfSheet(ss,weeks,members) {
   overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',false);
   overallMainFormulas(sheet,totalMembers,weeks,'MNF',false);
 
-  return sheet;  
+  return sheet;
 }
 
 // SURVIVOR Sheet Creation / Adjustment
@@ -991,17 +985,17 @@ function survivorSheet(ss,weeks,members,dataRestore) {
     sheet.insertColumnsAfter(maxCols,cols-maxCols);
   }
   maxCols = sheet.getMaxColumns();
-  
+
   sheet.getRange(1,1).setValue('PLAYER');
   let eliminatedCol = 2;
   sheet.getRange(1,eliminatedCol).setValue('ELIMINATED');
   sheet.setColumnWidth(eliminatedCol,100);
-  
+
   for (let a = 0; a < weeks; a++ ) {
     sheet.getRange(1,a+3).setValue(a+1);
     sheet.setColumnWidth(a+3,30);
   }
-  
+
   let formula;
   for (let b = 2; b <= totalMembers; b++ ) {
     formula = '=iferror(vlookup(indirect(\"R[0]C1\",false),SURVIVOR_EVAL,2,false))';
@@ -1011,10 +1005,10 @@ function survivorSheet(ss,weeks,members,dataRestore) {
     formula = '=if(indirect(\"R1C[0]\",false)<SURVIVOR_START,,iferror(if(sum(arrayformula(if(isblank(R2C[0]:R[-1]C[0]),0,1)))>0,counta(R2C1:R[-1]C1)-countif(R2C2:R[-1]C2,\"\<=\"\&R1C[0]),)))';
     sheet.getRange(totalMembers+2,eliminatedCol+b).setFormulaR1C1(formula);
   }
-  
+
   formula = '=iferror(rows(R2C[0]:R[-1]C[0])-counta(R2C[0]:R[-1]C[0]))';
   sheet.getRange(totalMembers+2,eliminatedCol).setFormulaR1C1(formula);
-  
+
   let range = sheet.getRange(1,1,rows,weeks+2);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
@@ -1024,18 +1018,18 @@ function survivorSheet(ss,weeks,members,dataRestore) {
   sheet.getRange(totalMembers+2,1).setValue('REMAINING');
   sheet.getRange(1,1,totalMembers+2,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
-  
+
   range = sheet.getRange(1,1,1,weeks+2);
   range.setBackground('black');
   range.setFontColor('white');
   range = sheet.getRange(totalMembers+2,1,1,weeks+2);
   range.setBackground('#e6e6e6');
-  
+
   sheet.setFrozenColumns(2);
   sheet.setFrozenRows(1);
-  
+
   // Setting conditional formatting rules
-  sheet.clearConditionalFormatRules();    
+  sheet.clearConditionalFormatRules();
   range = sheet.getRange('R2C3:R'+(totalMembers+1)+'C'+(weeks+2));
   // BLANK COLOR RULE
   let formatRuleBlank = SpreadsheetApp.newConditionalFormatRule()
@@ -1071,7 +1065,7 @@ function survivorSheet(ss,weeks,members,dataRestore) {
     .setFontColor('#ccb6b7')
     .setStrikethrough(true)
     .setRanges([range])
-    .build();    
+    .build();
   // INCORRECT PICK COLOR RULE
   let formatRuleIncorrect = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=vlookup(indirect(\"R[0]C1\",false),indirect(\"SURVIVOR_EVAL\"),match(indirect(\"R1C[0]\",false),indirect(\"SURVIVOR_EVAL_WEEKS\"),0)+'+eliminatedCol+',false)=1')
@@ -1094,7 +1088,7 @@ function survivorSheet(ss,weeks,members,dataRestore) {
     .setFontColor('#000000')
     .setBold(true)
     .setRanges([range])
-    .build();      
+    .build();
   // ELIMINATED COLOR RULE
   range = sheet.getRange('R2C1:R'+(totalMembers+1)+'C'+(weeks+2));
   let formatRuleEliminated = SpreadsheetApp.newConditionalFormatRule()
@@ -1115,7 +1109,7 @@ function survivorSheet(ss,weeks,members,dataRestore) {
     .setBackground('#999999')
     .setFontColor('#bbbbbb')
     .setRanges([range])
-    .build();    
+    .build();
   let formatRules = sheet.getConditionalFormatRules();
   formatRules.push(formatRuleCorrectElim);
   formatRules.push(formatRuleCorrectPrevious);
@@ -1131,7 +1125,7 @@ function survivorSheet(ss,weeks,members,dataRestore) {
   sheet.setConditionalFormatRules(formatRules);
 
   range = sheet.getRange('R2C'+(eliminatedCol-1)+':R'+(totalMembers+1)+'C'+(eliminatedCol-1));
-  ss.setNamedRange('SURVIVOR_NAMES',range);  
+  ss.setNamedRange('SURVIVOR_NAMES',range);
   range = sheet.getRange('R2C'+eliminatedCol+':R'+(totalMembers+1)+'C'+eliminatedCol);
   ss.setNamedRange('SURVIVOR_ELIMINATED',range);
   range = sheet.getRange('R2C'+(eliminatedCol+1)+':R'+(totalMembers+1)+'C'+(weeks+2));
@@ -1165,7 +1159,7 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
   }
 
   sheet.setTabColor(configTabColor);
-  
+
   if (members == null) {
     members = memberList(ss);
   }
@@ -1197,17 +1191,17 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
     sheet.deleteColumns(weeks+2,maxCols - (weeks+2));
   }
   maxCols = sheet.getMaxColumns();
-  
+
   sheet.getRange(1,1).setValue('PLAYER');
   let eliminatedCol = 2;
   sheet.getRange(1,eliminatedCol).setValue('ELIMINATED');
   sheet.setColumnWidth(eliminatedCol,100);
-  
+
   for (let a = 0; a < weeks; a++ ) {
     sheet.getRange(1,a+3).setValue(a+1);
     sheet.setColumnWidth(a+3,30);
   }
-  
+
   let formula;
   for (let b = 2; b <= totalMembers; b++ ) {
     formula = '=iferror(match(1,indirect(\"R[0]C\"\&(indirect(\"SURVIVOR_START\")+2)\&\"\:R[0]C20\",false),0),)';
@@ -1224,7 +1218,7 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
 
   formula = '=iferror(rows(R2C[0]:R[-1]C[0])-counta(R2C[0]:R[-1]C[0]))';
   sheet.getRange(totalMembers+2,eliminatedCol).setFormulaR1C1(formula);
-  
+
   let range = sheet.getRange(1,1,rows,weeks+2);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
@@ -1240,12 +1234,12 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
   range.setFontColor('white');
   range = sheet.getRange(totalMembers+2,1,1,weeks+2);
   range.setBackground('#e6e6e6');
-  
+
   sheet.setFrozenColumns(2);
   sheet.setFrozenRows(1);
-  
+
   // Setting conditional formatting rules
-  sheet.clearConditionalFormatRules();    
+  sheet.clearConditionalFormatRules();
   range = sheet.getRange('R2C3:R'+(totalMembers+1)+'C'+(weeks+2));
   // BLANK COLOR RULE
   let formatRuleBlank = SpreadsheetApp.newConditionalFormatRule()
@@ -1273,7 +1267,7 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
     .setBackground('#fcf2f3')
     .setFontColor('#dbb2b6')
     .setRanges([range])
-    .build();    
+    .build();
   // INCORRECT PICK COLOR RULE
   let formatRuleIncorrect = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=or(indirect(\"R[0]C[0]\",false)=1,and(isblank(indirect(\"R[0]C[0]\",false)),indirect(\"R1C[0]\",false)<indirect(\"WEEK\")))')
@@ -1309,7 +1303,7 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
     .setFontColor('#000000')
     .setBold(true)
     .setRanges([range])
-    .build();        
+    .build();
   // HIDE VISIBILITY OF UNEVALUATED NUMBERS
   range = sheet.getRange('R2C3:R'+(totalMembers+1)+'C'+(weeks+2));
   let formatRuleWhite = SpreadsheetApp.newConditionalFormatRule()
@@ -1332,7 +1326,7 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
   sheet.setConditionalFormatRules(formatRules);
 
   range = sheet.getRange(2,(eliminatedCol-1),totalMembers,1);
-  ss.setNamedRange('SURVIVOR_EVAL_NAMES',range);  
+  ss.setNamedRange('SURVIVOR_EVAL_NAMES',range);
   range = sheet.getRange(2,eliminatedCol,totalMembers,1);
   ss.setNamedRange('SURVIVOR_EVAL_ELIMINATED',range);
   range = sheet.getRange(totalMembers+2,eliminatedCol);
@@ -1341,11 +1335,11 @@ function survivorEvalSheet(ss,weeks,members,survivorStart) {
   ss.setNamedRange('SURVIVOR_EVAL_WEEKS',range);
   range = sheet.getRange(2,1,totalMembers,weeks+2);
   ss.setNamedRange('SURVIVOR_EVAL',range);
-  
+
   survivorDoneFormula(ss);
 
   sheet.hideSheet();
-  
+
   return sheet;
 }
 
@@ -1362,14 +1356,14 @@ function winnersSheet(ss,year,weeks,members) {
 
   sheet.clear();
   sheet.setTabColor(winnersTabColor);
-  
+
   let checkboxRange = sheet.getRange(2,3,weeks+3,1);
   let checkboxes = checkboxRange.getValues();
-  
+
   if (members == null) {
     members = memberList(ss);
   }
-  
+
   let rows = weeks + 4;
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
@@ -1412,13 +1406,13 @@ function winnersSheet(ss,year,weeks,members) {
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
-  
-  sheet.setFrozenRows(1); 
+
+  sheet.setFrozenRows(1);
 
   range = sheet.getRange('R2C2:R'+(weeks+1)+'C2');
   ss.setNamedRange('WEEKLY_WINNERS',range);
 
-  sheet.clearConditionalFormatRules(); 
+  sheet.clearConditionalFormatRules();
   // OVERALL SHEET GRADIENT RULE
   let fivePlusWins = SpreadsheetApp.newConditionalFormatRule()
   .whenFormulaSatisfied('=countif($2:B$'+(weeks+1)+',B2)>=5')
@@ -1446,7 +1440,7 @@ function winnersSheet(ss,year,weeks,members) {
   formatRules.push(threePlusWins);
   formatRules.push(twoPlusWins);
   sheet.setConditionalFormatRules(formatRules);
-  
+
   // Rewrites the checkboxes if they previously had any checked.
   let col = checkboxRange.getColumn();
   for (let a = 0; (a < checkboxes.length || a < (weeks + 3)); a++) {
@@ -1470,10 +1464,10 @@ function winnersSheet(ss,year,weeks,members) {
 // SUMMARY Sheet Creation / Adjustment
 function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
   ss = fetchSpreadsheet(ss);
-  
+
   if (pickemsInclude == null) {
     pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
-  } 
+  }
 
   if (pickemsInclude) {
     if (mnfInclude == null) {
@@ -1497,7 +1491,7 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
   }
   sheet.clear();
   sheet.setTabColor(winnersTabColor);
-  
+
   if (members == null) {
     members = memberList(ss);
   }
@@ -1523,7 +1517,7 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
   }
   headers.push('NOTES');
   headersWidth.push(160);
-  
+
   let totalCol = headers.indexOf('TOTAL CORRECT') + 1;
   let weeklyPercentCol = headers.indexOf('AVG % CORRECT') + 1;
   let weeklyRankAvgCol = headers.indexOf('AVG % CORRECT RANK') + 1;
@@ -1532,7 +1526,7 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
 
   let len = headers.length;
   let totalMembers = members.length;
-  
+
   let rows = totalMembers + 1;
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
@@ -1548,35 +1542,35 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
     sheet.insertColumnsAfter(maxCols, len - maxCols);
   }
   maxCols = sheet.getMaxColumns();
-  
+
   sheet.getRange(1,1,1,len).setValues([headers]);
   if(restoreNotes) {
     sheet.getRange(2,notesCol,notes.length,1).setValues(notes);
   }
-  
+
   for ( let a = 0; a < len; a++ ) {
     sheet.setColumnWidth(a+1,headersWidth[a]);
   }
   sheet.setRowHeight(1,40);
   let range = sheet.getRange(1,1,1,maxCols);
   range.setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  
+
   range = sheet.getRange(1,1,rows,len);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
-  sheet.getRange(2,1,totalMembers,1).setValues(members); 
+  sheet.getRange(2,1,totalMembers,1).setValues(members);
   sheet.getRange(1,1,totalMembers+1,1).setHorizontalAlignment('left');
-  
+
   range = sheet.getRange(1,1,1,len);
   range.setBackground('black');
   range.setFontColor('white');
-  
+
   sheet.setFrozenColumns(1);
   sheet.setFrozenRows(1);
-  
-  sheet.clearConditionalFormatRules(); 
+
+  sheet.clearConditionalFormatRules();
   let formatRules = sheet.getConditionalFormatRules();
   if (pickemsInclude) {
     // SUMMARY TOTAL GRADIENT RULE
@@ -1597,7 +1591,7 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
         .setGradientMinpoint('#FFFFFF')
         .setRanges([rangeMNFTot])
         .build();
-      formatRules.push(formatRuleMNFTot);    
+      formatRules.push(formatRuleMNFTot);
       // RANK MNF GRADIENT RULE
       rangeMNFRank = sheet.getRange('R2C'+(mnfCol+1)+':R'+rows+'C'+(mnfCol+1));
       ss.setNamedRange('TOT_MNF_RANK',rangeMNFRank);
@@ -1621,7 +1615,7 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
     formatRules.push(formatRuleRank);
     // WEEKLY WINS GRADIENT/SINGLE COLOR RULES
     range = sheet.getRange('R2C'+weeklyWinsCol+':R'+rows+'C'+weeklyWinsCol);
-    ss.setNamedRange('WEEKLY_WINS',range); 
+    ss.setNamedRange('WEEKLY_WINS',range);
     let formatRuleWeeklyWinsEmpty = SpreadsheetApp.newConditionalFormatRule()
       .whenNumberEqualTo(0)
       .setBackground('#FFFFFF')
@@ -1634,7 +1628,7 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
       .setGradientMinpoint('#FFFFFF')
       .setRanges([range])
       .build();
-    formatRules.push(formatRuleWeeklyWins);   
+    formatRules.push(formatRuleWeeklyWins);
     // OVERALL AND WEEKLY CORRECT % AVG
     range = sheet.getRange('R2C'+weeklyPercentCol+':R'+rows+'C'+weeklyPercentCol);
     range.setNumberFormat('##.#%');
@@ -1669,15 +1663,15 @@ function summarySheet(ss,members,pickemsInclude,mnfInclude,survivorInclude) {
       .whenTextContains('OUT')
       .setBackground('#F2BDC2')
       .setRanges([range])
-      .build();    
+      .build();
     formatRules.push(formatRuleIn);
     formatRules.push(formatRuleOut);
-  }  
+  }
   sheet.setConditionalFormatRules(formatRules);
   // Creates all formulas for SUMMARY Sheet
   summarySheetFormulas(totalMembers);
 
-  return sheet;  
+  return sheet;
 }
 
 // UPDATES SUMMARY SHEET FORMULAS
@@ -1790,12 +1784,12 @@ function allFormulasUpdate(ss){
     maxCols = sheet.getMaxColumns();
     overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',false);
     overallMainFormulas(sheet,totalMembers,weeks,'RNK',false);
-  
+
     sheet = ss.getSheetByName('PCT');
     maxCols = sheet.getMaxColumns();
     overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',true);
     overallMainFormulas(sheet,totalMembers,weeks,'PCT',true);
-    
+
     if (mnfInclude) {
       sheet = ss.getSheetByName('MNF');
       maxCols = sheet.getMaxColumns();
