@@ -83,38 +83,35 @@ This newest update to version 2.6 includes the following new improved features/c
 
 # **1. Example Sheets**
 
-<h3 align="center">NFL OUTCOMES Sheet</h3>
-<p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-pickems-outcomes-sheet.png" width="600" alt="WEEKLY Sheet">
-</p>
-
 <h3 align="center">WEEKLY Sheet</h3>
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2023/09/googlesheets-pickems-outcomes-sheet.png" width="600" alt="WEEKLY Sheet">
+<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_weekly_sheet.jpg" width="600" alt="WEEKLY Sheet">
 </p>
 
-
+<h3 align="center">NFL OUTCOMES Sheet</h3>
+<p align="center">
+<img src="https://benpowerscreative.com/wp-content/uploads/2023/09/googlesheets-pickems-outcomes-sheet.png" width="600" alt="NFL OUTCOMES">
+</p>
 
 <h3 align="center">SUMMARY Sheet</h3>
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-picks-example02.png" width="600" alt="SUMMARY Sheet">
+<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_summary_sheet.jpg" width="600" alt="SUMMARY Sheet">
 </p>
-
-
 
 <h3 align="center">MNF Sheet</h3>
 <p align="center">
 <img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-picks-example03.png" width="600" alt="MNF Sheet">
 </p>
 
-
-
 <h3 align="center">OVERALL Sheet</h3>
 <p align="center">
 <img src="https://benpowerscreative.com/wp-content/uploads/2023/03/googlesheets-picks-example04.png" width="600" alt="OVERALL Sheet">
 </p>
 
-
+<h3 align="center">RANK Sheet</h3>
+<p align="center">
+<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_rank_sheet.jpg" width="600" alt="RANK Sheet">
+</p>
 
 <h3 align="center">SURVIVOR Sheet</h3>
 <p align="center">
