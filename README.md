@@ -85,7 +85,7 @@ This newest update to version 2.6 includes the following new improved features/c
 
 <h3 align="center">WEEKLY Sheet</h3>
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_weekly_sheet.jpg" width="600" alt="WEEKLY Sheet">
+<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_weekly_sheet.png" width="600" alt="WEEKLY Sheet">
 </p>
 
 <h3 align="center">NFL OUTCOMES Sheet</h3>
@@ -95,7 +95,7 @@ This newest update to version 2.6 includes the following new improved features/c
 
 <h3 align="center">SUMMARY Sheet</h3>
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_summary_sheet.jpg" width="600" alt="SUMMARY Sheet">
+<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_summary_sheet.png" width="600" alt="SUMMARY Sheet">
 </p>
 
 <h3 align="center">MNF Sheet</h3>
@@ -110,7 +110,7 @@ This newest update to version 2.6 includes the following new improved features/c
 
 <h3 align="center">RANK Sheet</h3>
 <p align="center">
-<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_rank_sheet.jpg" width="600" alt="RANK Sheet">
+<img src="https://benpowerscreative.com/wp-content/uploads/2024/08/2024_rank_sheet.png" width="600" alt="RANK Sheet">
 </p>
 
 <h3 align="center">SURVIVOR Sheet</h3>
