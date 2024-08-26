@@ -488,6 +488,12 @@ function membersSheetProtected() {
 }
 
 // MEMBERS Sheet Locking (protection)
+function membersSheetLock() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('MEMBERS');
+  sheet.protect().setDescription('MEMBERS PROTECTION');
+  Logger.log('locked MEMBERS');
+}
 
 // MEMBERS Sheet Unlocking (remove protection);
 function membersSheetUnlock() {
