@@ -529,7 +529,7 @@ function totSheet(ss,weeks,members) {
   }
   let totalMembers = members.length;
   
-  let rows = totalMembers + 2;
+  let rows = totalMembers+2;
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
     sheet.deleteRows(rows,maxRows-rows);
@@ -559,14 +559,14 @@ function totSheet(ss,weeks,members) {
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
   sheet.getRange(2,1,totalMembers,1).setValues(members); 
-  sheet.getRange(1,1,totalMembers+2,1).setHorizontalAlignment('left');
+  sheet.getRange(1,1,rows,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
   sheet.setColumnWidth(2,70);
   
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
-  sheet.getRange(totalMembers+2,1,1,weeks+2).setBackground('#e6e6e6');
+  sheet.getRange(rows,1,1,weeks+2).setBackground('#e6e6e6');
   
   sheet.getRange(2,2,totalMembers+1,weeks+1).setNumberFormat('#.#');
 
@@ -729,7 +729,7 @@ function pctSheet(ss,weeks,members) {
   }
   let totalMembers = members.length;
   
-  let rows = totalMembers + 2; // 2 additional rows
+  let rows = totalMembers+2; // 2 additional rows
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
     sheet.deleteRows(rows,maxRows-rows);
@@ -742,9 +742,9 @@ function pctSheet(ss,weeks,members) {
     sheet.deleteColumns(weeks + 2,maxCols-(weeks + 2));
   }
   maxCols = sheet.getMaxColumns();
-  sheet.getRange(1,1).setValue('PERCENTS');
+  sheet.getRange(1,1).setValue('PERCENTAGES');
   sheet.getRange(1,2).setValue('AVERAGE');
-  sheet.getRange(totalMembers + 2,1).setValue('AVERAGES');
+  sheet.getRange(rows,1).setValue('AVERAGES');
 
   for ( let a = 0; a < weeks; a++ ) {
     sheet.getRange(1,a+3).setValue(a+1);
@@ -757,14 +757,14 @@ function pctSheet(ss,weeks,members) {
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
   sheet.getRange(2,1,totalMembers,1).setValues(members); 
-  sheet.getRange(1,1,totalMembers+2,1).setHorizontalAlignment('left');
+  sheet.getRange(1,1,rows,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
   sheet.setColumnWidth(2,70);
   
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
-  sheet.getRange(totalMembers+2,1,1,weeks+2).setBackground('#e6e6e6'); 
+  sheet.getRange(rows,1,1,weeks+2).setBackground('#e6e6e6'); 
 
   sheet.getRange(2,2,totalMembers+1,1).setNumberFormat("##.#%");  
   sheet.setFrozenColumns(2);
@@ -844,7 +844,7 @@ function mnfSheet(ss,weeks,members) {
       mondayNightGames[(data[a][0]-1)]++;
     }
   }
-  let rows = totalMembers + 1;
+  let rows = totalMembers + 2; // AustinOrphan's suggestion!
   let maxRows = sheet.getMaxRows();
   if (rows < maxRows) {
     sheet.deleteRows(rows,maxRows-rows);
@@ -859,6 +859,7 @@ function mnfSheet(ss,weeks,members) {
   maxCols = sheet.getMaxColumns();
   sheet.getRange(1,1).setValue('CORRECT');
   sheet.getRange(1,2).setValue('TOTAL');
+  sheet.getRange(rows,1).setValue('AVERAGES');
 
   let range = sheet.getRange(1,1,rows,maxCols);
   range.setHorizontalAlignment('center');
@@ -866,13 +867,14 @@ function mnfSheet(ss,weeks,members) {
   range.setFontFamily("Montserrat");
   range.setFontSize(10);
   sheet.getRange(2,1,totalMembers,1).setValues(members); 
-  sheet.getRange(1,1,totalMembers+1,1).setHorizontalAlignment('left');
+  sheet.getRange(1,1,rows,1).setHorizontalAlignment('left');
   sheet.setColumnWidth(1,120);
   sheet.setColumnWidth(2,70);
 
   range = sheet.getRange(1,1,1,maxCols);
   range.setBackground('black');
   range.setFontColor('white');
+  sheet.getRange(rows,1,1,weeks+2).setBackground('#e6e6e6'); 
   
   let headers = [];
   for ( let a = 0; a < weeks; a++ ) {
@@ -880,12 +882,23 @@ function mnfSheet(ss,weeks,members) {
       range = sheet.getRange(1,a+3);
       range.setNote('Two MNF Games')
         .setFontWeight('bold')
-        .setBackground('#666666');
+        .setBackground('#555555');
     } else if (mondayNightGames[a] == 3) {
       range = sheet.getRange(1,a+3);
       range.setNote('Three MNF Games')
         .setFontWeight('bold')
-        .setBackground('#AAAAAA');
+        .setBackground('#999999');
+    } else if (mondayNightGames[a] == 4) {
+      range = sheet.getRange(1,a+3);
+      range.setNote('Four MNF Games')
+        .setFontWeight('bold')
+        .setBackground('#CCCCCC');
+    } else if (mondayNightGames[a] >= 4) {
+      range = sheet.getRange(1,a+3);
+      range.setNote(mondayNightGames[a] + ' MNF Games')
+        .setFontWeight('bold')
+        .setFontColor('black')
+        .setBackground('#FFFFFF');
     }
     sheet.setColumnWidth(a+3,30);
     headers.push(a+1);
@@ -898,10 +911,10 @@ function mnfSheet(ss,weeks,members) {
   sheet.clearConditionalFormatRules(); 
 
   // SET MNF NAMES Range
-  let rangeMnfNames = sheet.getRange('R2C1:R'+rows+'C1');
+  let rangeMnfNames = sheet.getRange('R2C1:R'+(rows-1)+'C1');
   ss.setNamedRange('MNF_NAMES',rangeMnfNames); 
   // MNF TOTAL GRADIENT RULE
-  let rangeMnfTot = sheet.getRange('R2C2:R'+rows+'C2');
+  let rangeMnfTot = sheet.getRange('R2C2:R'+(rows-1)+'C2');
   ss.setNamedRange('MNF',rangeMnfTot);
   let formatRuleMnfTot = SpreadsheetApp.newConditionalFormatRule()
     .setGradientMaxpointWithValue("#C9FFDF", SpreadsheetApp.InterpolationType.NUMBER, '=max(indirect("MNF"))') // Max value of all correct picks
@@ -909,8 +922,16 @@ function mnfSheet(ss,weeks,members) {
     .setGradientMinpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, '=min(indirect("MNF"))') // Min value of all correct picks
     .setRanges([rangeMnfTot])
     .build();
+  // MNF AVERAGES GRADIENT RULE
+  let rangeMnfAvg = sheet.getRange('R'+rows+'C2:R'+rows+'C'+(weeks+2));
+  let formatRuleMnfAvg = SpreadsheetApp.newConditionalFormatRule()
+    .setGradientMaxpointWithValue("#C9FFDF", SpreadsheetApp.InterpolationType.NUMBER, "1")
+    .setGradientMidpointWithValue("#FFFFFF", SpreadsheetApp.InterpolationType.NUMBER, "0.5")
+    .setGradientMinpointWithValue("#FF9B69", SpreadsheetApp.InterpolationType.NUMBER, "0")
+    .setRanges([rangeMnfAvg])
+    .build();
   // MNF SHEET GRADIENT RULE
-  range = sheet.getRange('R2C3:R'+rows+'C'+(weeks+2));
+  range = sheet.getRange('R2C3:R'+(rows-1)+'C'+(weeks+2));
   ss.setNamedRange('MNF_WEEKLY',range);
   let formatRuleTwoCorrect = SpreadsheetApp.newConditionalFormatRule()
     .whenNumberEqualTo(2)
@@ -938,10 +959,11 @@ function mnfSheet(ss,weeks,members) {
   formatRules.push(formatRuleOneCorrect);
   formatRules.push(formatRuleIncorrect);
   formatRules.push(formatRuleMnfTot);
+  formatRules.push(formatRuleMnfAvg);
   sheet.setConditionalFormatRules(formatRules);
 
   overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',false);
-  overallMainFormulas(sheet,totalMembers,weeks,'MNF',false);
+  overallMainFormulas(sheet,totalMembers,weeks,'MNF',true);
 
   return sheet;  
 }
@@ -1712,26 +1734,24 @@ function summarySheetFormulas(totalMembers) {
 
 // TOT / RANK / PCT / MNF Combination formula for sum/average per player row
 function overallPrimaryFormulas(sheet,totalMembers,maxCols,action,avgRow) {
-  for ( let a = 1; a < totalMembers; a++ ) {
-    if (action == 'average') {
-      sheet.getRange(2,2,a+1,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,average(R[0]C3:R[0]C'+maxCols+')))');
-    } else if (action == 'sum') {
-      sheet.getRange(2,2,a+1,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,sum(R[0]C3:R[0]C'+maxCols+')))');
-    }
-    if (sheet.getSheetName() == 'PCT') {
-      sheet.getRange(2,2,a+1,1).setNumberFormat("##.#%");
-    } else if (action == 'sum') {
-      sheet.getRange(2,2,a+1,1).setNumberFormat("##");
-    } else {
-      sheet.getRange(2,2,a+1,1).setNumberFormat("#0.0");
-    }
-  }
-  if (avgRow && sheet.getSheetName() == 'PCT'){
-    sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))')
-      .setNumberFormat('##.#%');
-  } else {
-    sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))')
+  if (action == 'average') {
+    sheet.getRange(2,2,totalMembers,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,average(R[0]C3:R[0]C'+maxCols+')))')
       .setNumberFormat("#0.0");
+  } else if (action == 'sum') {
+    sheet.getRange(2,2,totalMembers,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,sum(R[0]C3:R[0]C'+maxCols+')))')
+      .setNumberFormat("##");
+  }
+  if (sheet.getSheetName() == 'PCT') {
+    sheet.getRange(2,2,totalMembers,1).setNumberFormat("##.#%");
+  }
+  if (avgRow) {
+    if (sheet.getSheetName() == 'PCT'){  
+      sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))')
+        .setNumberFormat('##.#%');
+    } else {
+      sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))')
+        .setNumberFormat("#0.0");
+    }
   }
 }
 
@@ -1753,10 +1773,34 @@ function overallMainFormulas(sheet,totalMembers,weeks,str,avgRow) {
       }
     }
   }
-  if (avgRow){
-    for (let a = 0; a < weeks; a++){
-      let rows = sheet.getMaxRows();
-      sheet.getRange(rows,a+3).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
+  if (avgRow) {
+    if (sheet.getSheetName() == 'MNF') {
+      // Instance of MNF sheet, where sheet needs to have data for quantity of MNF games
+      Logger.log('Checking for Monday games, if any');
+      let data = SpreadsheetApp.getActiveSpreadsheet().getRangeByName(league).getValues();
+      let text = '0';
+      let result = text.repeat(weeks);
+      let mondayNightGames = Array.from(result);
+      for (let a = 0; a < data.length; a++) {
+        if ( data[a][2] == 1 && data[a][3] >= 17) {
+          mondayNightGames[(data[a][0]-1)]++;
+        }
+      }
+      for (let a = 0; a < weeks; a++){
+        let rows = sheet.getMaxRows();
+        if (mondayNightGames[a] > 1) {
+          sheet.getRange(rows,a+3).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0])/'+mondayNightGames[a]+',))')
+            .setNumberFormat("##%");
+        } else {
+          sheet.getRange(rows,a+3).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))')
+            .setNumberFormat("##%");
+        }
+      }
+    } else {
+      for (let a = 0; a < weeks; a++){
+        let rows = sheet.getMaxRows();
+        sheet.getRange(rows,a+3).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
+      }
     }
   }
 }
@@ -1780,7 +1824,7 @@ function allFormulasUpdate(ss){
   let sheet, totalMembers, maxCols;
 
   if ( pickemsInclude ) {
-    sheet = ss.getSheetByName('TOT');
+    sheet = ss.getSheetByName('TOTAL');
     maxCols = sheet.getMaxColumns();
     totalMembers = members.length;
     overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',true);
@@ -1799,8 +1843,8 @@ function allFormulasUpdate(ss){
     if (mnfInclude) {
       sheet = ss.getSheetByName('MNF');
       maxCols = sheet.getMaxColumns();
-      overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',false);
-      overallMainFormulas(sheet,totalMembers,weeks,'MNF',false);
+      overallPrimaryFormulas(sheet,totalMembers,maxCols,'sum',true);
+      overallMainFormulas(sheet,totalMembers,weeks,'MNF',true);
     }
 
     sheet = ss.getSheetByName('WINNERS');
