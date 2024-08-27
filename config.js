@@ -312,7 +312,7 @@ function continueSetup(obj,ss,ui) {
   // Rename the spreadsheet if "Copy of" is present at the beginning
   let docName = ss.getName();
   if (docName.startsWith("Copy of ")) {
-    docName = docName.substring(9);
+    docName = docName.substring(8);
     ss.rename(docName);
     Logger.log('Document renamed to \''+docName+'\'');
   }
