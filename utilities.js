@@ -64,7 +64,7 @@ function fetchSpreadsheet(ss) {
   return ss;
 }
 
-// FETCH SPREADSHEET - Checks that the 'ui' variable passed into a script is not null, undefined, or a non-UI
+// FETCH UI - Checks that the 'ui' variable passed into a script is not null, undefined, or a non-UI
 function fetchUi(ui) {
   try{
     if (typeof ui.showModalDialog !== 'function') {
