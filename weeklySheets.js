@@ -359,14 +359,15 @@ function weeklySheet(ss,week,members,dataRestore) {
     // Formula to determine how many correct on the week
     sheet.getRange(row,1,1,maxCols).setBorder(null,null,true,null,false,false,'#AAAAAA',SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
-    sheet.getRange(row,pointsCol).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,counta(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')>0),sum(arrayformula(if(not(isblank(R'+row+'C'+firstMatchCol+':R'+row+'C'+finalMatchCol+')),if(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'=R'+row+'C'+firstMatchCol+':R'+row+'C'+finalMatchCol+'=true,1,0),0)*R'+bonusRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol+')),))');
+    sheet.getRange(row,pointsCol).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,counta(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')>0),sum(arrayformula(if(not(isblank(R'+row+'C'+firstMatchCol+':R'+row+'C'+finalMatchCol+')),if(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'=R'+row+'C'+firstMatchCol+':R'+row+'C'+finalMatchCol+',1,0),0)*R'+bonusRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol+')),))');
 
     // sheet.getRange(row,2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C['+finalMatchCol+'])>0,counta(R[0]C[3]:R[0]C['+finalMatchCol+'])>0),mmult(arrayformula(if(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'=R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')),1,0)))),))');
     
     // Formula to determine weekly rank
     sheet.getRange(row,pointsCol+1).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),rank(R[0]C'+pointsCol+',R'+entryRowStart+'C2:R'+entryRowEnd+'C2,false),))');
+
     // Formula to determine weekly correct percent
-    sheet.getRange(row,pointsCol+2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),sum(filter(arrayformula(if(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'=R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+',1,0)),counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')))/counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'),),)');
+    sheet.getRange(row,pointsCol+2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),sum(filter(arrayformula(if(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'=R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+',1,0)),not(isblank(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'))))/counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'),),)');
     
     // Formula to determine difference of tiebreaker from final MNF score
     if (tiebreaker) {
@@ -762,7 +763,7 @@ function weeklySheet(ss,week,members,dataRestore) {
   // DATA RESTORATION
   if (dataRestore && !fresh) {
     let allPreviousPicks = [], allTiebreakers = [], allComments = [];
-    for (let a = entryRowStart; a < entryRowEnd; a++) {
+    for (let a = entryRowStart; a <= entryRowEnd; a++) {
       let previousPicks = [];
       let index = previousNames.indexOf(sheet.getRange(a,1).getValue());
       if (index >= 0) {
@@ -927,12 +928,10 @@ function weeklySheetCreate(ss,next,restore) {
       prompt = ui.prompt('Which sheet would you like to create or recreate?\r\n\r\n' + weekString, ui.ButtonSet.OK_CANCEL);
       other = prompt.getResponseText();
       let promptText = invalid;
-      Logger.log('outer = ' + other);
       while (prompt.getSelectedButton() == 'OK' || !regex.test(other) || (other < 1 || other > weeks)) {
         while (prompt.getSelectedButton() == 'OK' && (!regex.test(other) || (other < 1 || other > weeks))) {
           prompt = ui.prompt(promptText, ui.ButtonSet.OK_CANCEL);
           other = prompt.getResponseText();
-          Logger.log(other);
           promptText = invalid;
         }
         if (missing.indexOf(other) == -1 && prompt.getSelectedButton() == 'OK') {
