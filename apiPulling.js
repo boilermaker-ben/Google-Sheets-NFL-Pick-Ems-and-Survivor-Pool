@@ -28,16 +28,20 @@ function fetchYear() {
 
 // FETCH CURRENT WEEK
 function fetchWeek(negative) {
-  let weeks, week;
+  let weeks, week, advance = 0;
   try {
     const obj = JSON.parse(UrlFetchApp.fetch(scoreboard).getContentText());
     let season = obj.season.type;
-    let cal = obj.leagues[0].calendar;
-    for (let a = 0; a < cal.length; a++) {
-      if (cal[a].value == season) {
-        weeks = cal[a].entries.length;
+    obj.leagues[0].calendar.forEach(entry => {
+      if (entry.value == season) {
+        weeks = entry.entries.length;
       }
-    }
+    });
+    obj.events.forEach(event => {
+      if (event.status.type.state != 'pre') {
+        advance = 1; // At least one game has started and therefore the script will prompt for the next week
+      }
+    });
     let name;
     switch (season) {
       case 1:
@@ -46,15 +50,16 @@ function fetchWeek(negative) {
         break;
       case 2: 
         name = 'Regular season';
-        week = obj.week.number;
+        week = obj.week.number + advance;
         break;
       case 3:
         name = 'Postseason';
-        week = obj.week.number + fbGames;
+        week = obj.week.number + obj.leagues[0].calendar[1].entries.length + advance;
         break;
     }
-    Logger.log(name + ' is currently active with ' + weeks + ' weeks in total'); 
+    Logger.log(name + ' is currently active with ' + weeks + ' weeks in total, current week is: ' + week); 
     if (negative) {
+      
       return week;
     } else {
       week = week <= 0 ? 1 : week;
@@ -98,7 +103,6 @@ function fetchTeamsESPN(year) {
   let obj = {};
   try {
     let string = schedulePrefix + year + scheduleSuffix;
-    Logger.log(string)
     obj = JSON.parse(UrlFetchApp.fetch(string).getContentText());
     let objTeams = obj.settings.proTeams;
     return objTeams;
@@ -641,4 +645,5 @@ function fetchLogos(){
       scriptProperties.setProperty('logos',JSON.stringify(logos));
     }
   }
+  return logos;
 }
