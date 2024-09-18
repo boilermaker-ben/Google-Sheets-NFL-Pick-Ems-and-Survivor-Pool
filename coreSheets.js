@@ -1706,17 +1706,17 @@ function summarySheetFormulas(totalMembers) {
 
 // TOT / RANK / PCT / MNF Combination formula for sum/average per player row
 function overallPrimaryFormulas(sheet,totalMembers,maxCols,action,avgRow) {
+  let range = sheet.getRange(2,2,totalMembers,1);
   if (action == 'average') {
-    sheet.getRange(2,2,totalMembers,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,average(R[0]C3:R[0]C'+maxCols+')))')
-      .setNumberFormat("#0.0");
+    range.setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,average(R[0]C3:R[0]C'+maxCols+')))')
+    if (sheet.getSheetName() == 'PCT') {
+      range.setNumberFormat("##.#%");
+    } else {
+      range.setNumberFormat("#0.0");
+    }
   } else if (action == 'sum') {
-    sheet.getRange(2,2,totalMembers,1).setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,sum(R[0]C3:R[0]C'+maxCols+')))')
-      .setNumberFormat("##");
-  }
-  if (sheet.getSheetName() == 'PCT') {
-    sheet.getRange(2,2,totalMembers,1).setNumberFormat("##.#%");
-  } else {
-    sheet.getRange(2,2,totalMembers,1).setNumberFormat("#0.0");
+    range.setFormulaR1C1('=iferror(if(counta(R[0]C3:R[0]C'+maxCols+')=0,,sum(R[0]C3:R[0]C'+maxCols+')))')
+      .setNumberFormat("0");
   }
   if (avgRow) {
     if (sheet.getSheetName() == 'PCT'){  
