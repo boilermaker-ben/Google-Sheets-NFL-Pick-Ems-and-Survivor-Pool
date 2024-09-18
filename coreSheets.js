@@ -275,41 +275,6 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
   }
   sheet.setTabColor(configTabColor);
 
-  try {
-    if (pickemsInclude == null) {
-      pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
-    }
-    if (mnfInclude == null) {
-      mnfInclude = ss.getRangeByName('MNF_PRESENT').getValue();
-    }
-    if (tnfInclude == null) {
-      tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
-    }
-    if (tiebreaker == null) {
-      tiebreaker = ss.getRangeByName('TIEBREAKER_PRESENT').getValue();
-    }
-    if (bonus == null) {
-      bonus = ss.getRangeByName('BONUS_PRESENT').getValue();
-    }
-    if (survivorInclude == null) {
-      survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
-    }
-    if (survivorInclude) {
-      if (week == 1) {
-        survivorStart = 1;
-      } else {
-        survivorStart = ss.getRangeByName('SURVIVOR_START').getValue();
-      }
-    }
-    if (commentInclude == null) {
-      commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
-    }
-  }
-  catch (err) {
-    ss.toast('Error with getting information from CONFIG sheet or from runFirst script input, you may need to recreate everything or look at your version history');
-    Logger.log('sheetSheet Error: ' + err.stack);
-  }
-
   // Establish generic name if null provided
   if (name == null) {
     if (pickemsInclude) {
