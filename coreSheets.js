@@ -650,6 +650,11 @@ function rnkSheet(ss,weeks,members) {
   sheet.getRange(1,1).setValue('RANKS');
   sheet.getRange(1,2).setValue('AVERAGE');
   
+  for ( let a = 0; a < weeks; a++ ) {
+    sheet.getRange(1,a+3).setValue(a+1);
+    sheet.setColumnWidth(a+3,48);
+  }
+      
   let range = sheet.getRange(1,1,rows,maxCols);
   range.setHorizontalAlignment('center');
   range.setVerticalAlignment('middle');
@@ -702,7 +707,7 @@ function rnkSheet(ss,weeks,members) {
   sheet.setConditionalFormatRules(formatRules);
   
   overallPrimaryFormulas(sheet,totalMembers,maxCols,'average',false);
-  overallMainFormulas(sheet,totalMembers,weeks,'RANK',false);
+  overallMainFormulas(sheet,totalMembers,weeks,'RNK',false);
   
   return sheet;  
 }
