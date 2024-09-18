@@ -614,7 +614,7 @@ function rnkSheet(ss,weeks,members) {
   maxCols = sheet.getMaxColumns();
   sheet.getRange(1,1).setValue('RANKS');
   sheet.getRange(1,2).setValue('AVERAGE');
-  
+
   for ( let a = 0; a < weeks; a++ ) {
     sheet.getRange(1,a+3).setValue(a+1);
     sheet.setColumnWidth(a+3,48);
@@ -826,6 +826,7 @@ function mnfSheet(ss,weeks,members) {
   if ( weeks + 2 < maxCols ) {
     sheet.deleteColumns(weeks + 2,maxCols-(weeks + 2));
   }
+
   maxCols = sheet.getMaxColumns();
   sheet.getRange(1,1).setValue('CORRECT');
   sheet.getRange(1,2).setValue('TOTAL');
@@ -874,6 +875,7 @@ function mnfSheet(ss,weeks,members) {
     headers.push(a+1);
   }
   sheet.getRange(1,3,1,weeks).setValues([headers]);
+  sheet.setColumnWidths(3,headers.length,41); // Width of text with 100%
 
   sheet.setFrozenColumns(2);
   sheet.setFrozenRows(1); 
@@ -1713,11 +1715,13 @@ function overallPrimaryFormulas(sheet,totalMembers,maxCols,action,avgRow) {
   }
   if (sheet.getSheetName() == 'PCT') {
     sheet.getRange(2,2,totalMembers,1).setNumberFormat("##.#%");
+  } else {
+    sheet.getRange(2,2,totalMembers,1).setNumberFormat("#0.0");
   }
   if (avgRow) {
     if (sheet.getSheetName() == 'PCT'){  
       sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))')
-        .setNumberFormat('##.#%');
+        .setNumberFormat('#0.0%');
     } else {
       sheet.getRange(sheet.getMaxRows(),2).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))')
         .setNumberFormat("#0.0");
@@ -1728,6 +1732,7 @@ function overallPrimaryFormulas(sheet,totalMembers,maxCols,action,avgRow) {
 // TOT / RNK / PCT / MNF Combination formula for each column (week)
 function overallMainFormulas(sheet,totalMembers,weeks,str,avgRow) {
   let b;
+  const name = sheet.getSheetName();
   for (let a = 1; a <= weeks; a++ ) {
     b = 1;
     for (b ; b <= totalMembers; b++) {
@@ -1736,7 +1741,7 @@ function overallMainFormulas(sheet,totalMembers,weeks,str,avgRow) {
       } else {
         sheet.getRange(b+1,a+2).setFormula('=iferror(arrayformula(vlookup(R[0]C1,{NAMES_'+a+','+str+'_'+a+'},2,false)))');
       }
-      if (sheet.getSheetName() == 'PCT') {
+      if (name == 'PCT') {
         sheet.getRange(b+1,a+2).setNumberFormat("##.#%");
       } else {
         sheet.getRange(b+1,a+2).setNumberFormat("#0");
@@ -1744,7 +1749,7 @@ function overallMainFormulas(sheet,totalMembers,weeks,str,avgRow) {
     }
   }
   if (avgRow) {
-    if (sheet.getSheetName() == 'MNF') {
+    if (name == 'MNF') {
       // Instance of MNF sheet, where sheet needs to have data for quantity of MNF games
       Logger.log('Checking for Monday games, if any');
       let data = SpreadsheetApp.getActiveSpreadsheet().getRangeByName(league).getValues();
@@ -1769,7 +1774,13 @@ function overallMainFormulas(sheet,totalMembers,weeks,str,avgRow) {
     } else {
       for (let a = 0; a < weeks; a++){
         let rows = sheet.getMaxRows();
-        sheet.getRange(rows,a+3).setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
+        const range = sheet.getRange(rows,a+3);
+        range.setFormulaR1C1('=iferror(if(counta(R2C[0]:R'+(totalMembers+1)+'C[0])>=3,average(R2C[0]:R'+(totalMembers+1)+'C[0]),))');
+        if (name == 'PCT') {
+          range.setNumberFormat("#0.0%");
+        } else {
+          range.setNumberFormat("#0.0");
+        }
       }
     }
   }
