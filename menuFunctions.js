@@ -77,8 +77,9 @@ function createMenu(lock,trigger) {
     menu.addItem('Reopen Members','createMenuUnlocked');
   }
   menu.addSeparator();
-  menu.addItem('Help & Support','showSupportDialog');
-  menu.addToUi();
+  menu.addItem('Refresh Formulas','allFormulasUpdate')
+    .addItem('Help & Support','showSupportDialog')
+    .addToUi();
   if (trigger) {
     deleteOnOpenTriggers();
     let id = ss.getId();
