@@ -970,6 +970,15 @@ function weeklySheetCreate(ss,next,restore) {
     }
     weeklySheet(ss,next,memberList(ss),restore);
   }
+  try {
+    ss.toast('Refreshing formulas...');
+    allFormulasUpdate(ss)
+    ss.toast('Formulas refreshed succesfully');
+  }
+  catch (err) {
+    ss.toast('Error refreshing formulas\r\n' + err.stack);
+    Logger.log('Error refreshing formulas\r\n' + err.stack);
+  }
 }
 
 // WEEKLY SHEET COLORATION - Adds a color to the weekly tabs that exist and uses the "dayColorsFilled" array [global variable]
