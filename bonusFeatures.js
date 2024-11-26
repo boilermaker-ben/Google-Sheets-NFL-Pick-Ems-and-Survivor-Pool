@@ -205,7 +205,7 @@ function bonusRandomGameSet() {
   } catch (err) {
     Logger.log('No sheet for week ' + week);
     let prompt = ui.alert('NO SHEET\r\n\r\nThe week ' + week + ' sheet does not exist. Create a sheet now for week ' + week + '?\r\n\r\n(Selecting \'Cancel\' will exit and no game will be selected)', ui.ButtonSet.OK_CANCEL);
-    if (prompt = ui.Button.OK) {
+    if (prompt == ui.Button.OK) {
       sheet = weeklySheet(ss,week,memberList(ss),false);
       sheetExisted = false;
     } else {
