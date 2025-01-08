@@ -277,7 +277,7 @@ function formCreate(ss,first,week,year,name) { // KEEP YEAR
   // Begin creation of new form if either pickems or an active survivor pool is present
   if (pickemsInclude || (survivorInclude && survivorStart <= week)) {
     // Fetch update to the season data to ensure most recent schedule
-    if (!first & week != 1) {
+    if (!first & week != 1 & week <= 18) {
       try { 
         ss.getRangeByName(league);
         let refreshSchedulePrompt = ui.alert(league + ' REFRESH\r\n\r\nDo you want to refresh the ' + league + ' schedule data?\r\n\r\n(Only necessary when ' + league + ' schedule changes occur)', ui.ButtonSet.YES_NO);
@@ -337,7 +337,7 @@ function formCreate(ss,first,week,year,name) { // KEEP YEAR
         let regex = new RegExp(/[0-9]{1,2}/);
         let prompt = ui.prompt('Type the number of the week you\'d like to create:', ui.ButtonSet.OK_CANCEL);
         week = prompt.getResponseText();
-        while (prompt.getSelectedButton() != 'CANCEL' && prompt.getSelectedButton() != 'CLOSE' && (!regex.test(week) || week < 1 || week > 18)) {
+        while (prompt.getSelectedButton() != 'CANCEL' && prompt.getSelectedButton() != 'CLOSE' && (!regex.test(week) || week < 1 || week > 23)) {
           prompt = ui.prompt('You didn\'t provide a valid week number.\r\n\r\nType the number of the week you\'d like to create:', ui.ButtonSet.OK_CANCEL);
           week = prompt.getResponseText();
         }
