@@ -5,6 +5,10 @@ Google Sheet document with multiple script files to generate Google Forms for se
 
 -------------------------
 
+**NOTE: I am developing a NEW VERSION FOR 2025 and hope to get it going before the season starts--it should be worth the wait!**
+
+If you can't wait for a few more days, then you can likely just use last year's version without any issue (it'll just be missing a lot of the cool new features I'm adding in)
+
 **TLDR: Go [here](https://docs.google.com/spreadsheets/d/12ZV1sEuEw4J-giEuWhY_rly11Gk6jFfWQOgfeAPA_JU/edit?usp=sharing) and make a copy of the sheet. Follow prompts. Enjoy!**
 
 -------------------------
