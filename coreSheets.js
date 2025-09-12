@@ -308,6 +308,9 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
   sheet.getRange(endData+1,1,2,1).setValues([['TITLE'],['SHEET']]);
   let weeksArr = [];
   for(let a = 1; a <= weeks; a++) {
+    if (a == 22) {
+      sheet.getRange(a+(endData+2),2).setValue('PRO BOWL - UNLIKELY TO WORK IN THIS WEEK!')
+    }
     sheet.getRange(a+(endData+2),1).setValue(a);
     ss.setNamedRange('FORM_WEEK_'+a,sheet.getRange(a+(endData+2),2));
     weeksArr.push(a);
