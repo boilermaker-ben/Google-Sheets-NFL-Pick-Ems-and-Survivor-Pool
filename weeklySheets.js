@@ -25,7 +25,7 @@ function weeklySheet(ss,week,members,dataRestore) {
   let commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
 
   let sheet, sheetName = weeklySheetPrefix + week;
-  let data = ss.getRangeByName(league).getValues();
+  let data = ss.getRangeByName(league).getValues().shift();
   
   let diffCount = (totalMembers - 1) >= 5 ? 5 : (totalMembers - 1); // Number of results to display for most similar weekly picks (defaults to 5, or 1 fewer than the total member count, whichever is larger)
 
