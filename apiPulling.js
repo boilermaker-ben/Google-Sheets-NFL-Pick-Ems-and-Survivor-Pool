@@ -76,7 +76,7 @@ function fetchWeek(negative) {
 // FETCH TOTAL WEEKS - doesn't remove the week 22 pro bowl
 function fetchWeeks() {
   try {
-    let weeks;
+    let weeks = 0;
     const content = UrlFetchApp.fetch(scoreboard).getContentText();
     const obj = JSON.parse(content);
     const calendar = obj.leagues[0].calendar;
