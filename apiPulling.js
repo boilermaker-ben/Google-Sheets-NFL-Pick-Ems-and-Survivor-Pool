@@ -583,7 +583,7 @@ function fetchGames(week) {
     let text = 'Attempted to fetch NFL matches for week ' + week + ' but no NFL data exists, fetching now...';
     Logger.log(text);
     ss.toast(text);
-    fetchSchedule();
+    fetchSchedule(ss);
     return fetchGames(week);
   }
 }
@@ -784,7 +784,7 @@ function fetchWeeklyScores(){
         }
         catch (err) {
           ss.toast('No NFL data, importing now');
-          fetchSchedule(year);
+          fetchSchedule(ss,year);
           data = ss.getRangeByName(league).getValues().shift();
         }
         for (let a = 0; a < data.length; a++) {
