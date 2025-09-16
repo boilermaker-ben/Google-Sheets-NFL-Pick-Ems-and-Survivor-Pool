@@ -18,9 +18,10 @@ function outcomesSheet(ss) {
   }
   catch (err) {
     ss.toast('No ' + league + ' data, importing now');
-    fetchSchedule();
+    fetchSchedule(ss);
     data = ss.getRangeByName(league).getValues();
   }
+  data.shift();
   
   let tnfInclude = true;
   try{
@@ -154,14 +155,18 @@ function outcomesSheetUpdate(ss,week,equations) {
     week = fetchWeek();
   }
   let sheet = ss.getSheetByName(league + '_OUTCOMES');
-  if (sheet == null) {
+  if (!sheet) {
     sheet = outcomesSheet(ss);
   }
 
   let data = ss.getRangeByName(league).getValues();
-  if (data == null) {
-    fetchSchedule();
+  if (!data) {
+    fetchSchedule(ss);
+    data = ss.getRangeByName(league).getValues();
   }
+  
+  data.shift();  
+  
   let tnfInclude = true;
   try{
     tnfInclude = ss.getRangeByName('TNF_PRESENT').getValue();
@@ -171,6 +176,7 @@ function outcomesSheetUpdate(ss,week,equations) {
   }
 
   let days = [], games = [];
+
   for (let a = 0; a < data.length; a++) {
     if (data[a][0] == week && ((tnfInclude && data[a][2] == -3) || data[a][2] != -3)) {
       days.push(data[a][2]+3); // Numeric day used for gradient application (-3 is Thursday, 1 is Monday);
@@ -313,7 +319,7 @@ function configSheet(ss,name,year,week,weeks,pickemsInclude,mnfInclude,tnfInclud
     }
     sheet.getRange(a+(endData+2),1).setValue(a);
     ss.setNamedRange('FORM_WEEK_'+a,sheet.getRange(a+(endData+2),2));
-    weeksArr.push(a);
+    weeksArr.push(a);    
   }
 
   // Setting values and named ranges of Config sheet
@@ -809,6 +815,7 @@ function mnfSheet(ss,weeks,members) {
   
   Logger.log('Checking for Monday games, if any');
   let data = ss.getRangeByName(league).getValues();
+  data.shift();
   let text = '0';
   let result = text.repeat(weeks);
   let mondayNightGames = Array.from(result);
@@ -1756,6 +1763,7 @@ function overallMainFormulas(sheet,totalMembers,weeks,str,avgRow) {
       // Instance of MNF sheet, where sheet needs to have data for quantity of MNF games
       Logger.log('Checking for Monday games, if any');
       let data = SpreadsheetApp.getActiveSpreadsheet().getRangeByName(league).getValues();
+      data.shift();
       let text = '0';
       let result = text.repeat(weeks);
       let mondayNightGames = Array.from(result);
