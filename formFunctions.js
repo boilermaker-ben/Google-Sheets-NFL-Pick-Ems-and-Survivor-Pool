@@ -183,13 +183,13 @@ function formNoResponses(formId,week,source,multiple,count) {
 function newForm(week,year,name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ssId = ss.getId();
-  // Template form for creating new forms
+  // Template form for creating new forms PLEASE DO NOT EDIT!
   let id = '12fWFNFDbH5evyoSP8FdUUi6B3ZlZuGt0IWei-7IYuq0';
   
   // Check for folder and create one if doesn't exist
   let folder = null;
   if (name == null || name == '') {
-    name = league + ' Pick \’Ems';
+    name = league + ' Pick \'Ems';
   }
   let folderName = year + ' ' + name + ' Forms';
   let folders = DriveApp.getFoldersByName(folderName);
@@ -361,7 +361,7 @@ function formCreate(ss,first,week,year,name) { // KEEP YEAR
       ss.toast('Creating form for week ' + week);
 
       // Import all schedule data to create form once confirming refreshing of data or leaving it as-is
-      const data = ss.getRangeByName(league).getValues();
+      const data = ss.getRangeByName(league).getValues().shift();
     
       let survivorReset, survivorUnlock;
       if (survivorInclude && week != 1) {
@@ -1243,7 +1243,7 @@ function dataTransfer(redirect,thursOnly) {
         
         if (pickemsInclude && thursOnly) {
           ss.toast('Checking for what games happen on Thursday, if any');
-          let data = ss.getRangeByName(league).getValues();
+          let data = ss.getRangeByName(league).getValues().shift();
           for (let a = 0; a < data.length; a++) {
             if (data[a][0] == week && data[a][2] == -3) {
               thursTeams.push(data[a][6]);
