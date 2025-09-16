@@ -25,7 +25,8 @@ function weeklySheet(ss,week,members,dataRestore) {
   let commentInclude = ss.getRangeByName('COMMENTS_PRESENT').getValue();
 
   let sheet, sheetName = weeklySheetPrefix + week;
-  let data = ss.getRangeByName(league).getValues().shift();
+  let data = ss.getRangeByName(league).getValues();
+  data.shift();
   
   let diffCount = (totalMembers - 1) >= 5 ? 5 : (totalMembers - 1); // Number of results to display for most similar weekly picks (defaults to 5, or 1 fewer than the total member count, whichever is larger)
 
@@ -86,7 +87,7 @@ function weeklySheet(ss,week,members,dataRestore) {
         finalInput = maxRows - 1;
       }
     }
-    previousRows = finalInput - firstInput;
+    previousRows = finalInput - firstInput + 1;
     
     let previousHeaders = sheet.getRange('A1:1').getValues().flat();
     previousHeaders.unshift('COL INDEX ADJUST');
@@ -365,9 +366,8 @@ function weeklySheet(ss,week,members,dataRestore) {
     
     // Formula to determine weekly rank
     sheet.getRange(row,pointsCol+1).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),rank(R[0]C'+pointsCol+',R'+entryRowStart+'C2:R'+entryRowEnd+'C2,false),))');
-
     // Formula to determine weekly correct percent
-    sheet.getRange(row,pointsCol+2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),sum(filter(arrayformula(if(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'=R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+',1,0)),not(isblank(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'))))/counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'),),)');
+    sheet.getRange(row,pointsCol+2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),sum(filter(arrayformula(if(and(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'=R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+',R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'\<\>\"\"),1,0)),counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')))/counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'),),)');
     
     // Formula to determine difference of tiebreaker from final MNF score
     if (tiebreaker) {
@@ -763,7 +763,7 @@ function weeklySheet(ss,week,members,dataRestore) {
   // DATA RESTORATION
   if (dataRestore && !fresh) {
     let allPreviousPicks = [], allTiebreakers = [], allComments = [];
-    for (let a = entryRowStart; a <= entryRowEnd; a++) {
+    for (let a = entryRowStart; a < entryRowEnd; a++) {
       let previousPicks = [];
       let index = previousNames.indexOf(sheet.getRange(a,1).getValue());
       if (index >= 0) {
@@ -928,10 +928,12 @@ function weeklySheetCreate(ss,next,restore) {
       prompt = ui.prompt('Which sheet would you like to create or recreate?\r\n\r\n' + weekString, ui.ButtonSet.OK_CANCEL);
       other = prompt.getResponseText();
       let promptText = invalid;
+      Logger.log('outer = ' + other);
       while (prompt.getSelectedButton() == 'OK' || !regex.test(other) || (other < 1 || other > weeks)) {
         while (prompt.getSelectedButton() == 'OK' && (!regex.test(other) || (other < 1 || other > weeks))) {
           prompt = ui.prompt(promptText, ui.ButtonSet.OK_CANCEL);
           other = prompt.getResponseText();
+          Logger.log(other);
           promptText = invalid;
         }
         if (missing.indexOf(other) == -1 && prompt.getSelectedButton() == 'OK') {
