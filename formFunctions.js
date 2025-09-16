@@ -410,7 +410,8 @@
         // Name question
         let nameQuestion, item, day, time, minutes;
         // Update form title, ensure description and confirmation are set
-        form.setTitle(name + ' - Week ' + week + ' - ' + year).setPublished(true)
+        form.setPublished(true);
+        form.setTitle(name + ' - Week ' + week + ' - ' + year)
           .setDescription('Select who you believe will win each game.\r\n\r\nGood luck!')
           .setConfirmationMessage('Thanks for responding!')
           .setShowLinkToRespondAgain(false)
