@@ -282,13 +282,13 @@
           ss.getRangeByName(league);
           let refreshSchedulePrompt = ui.alert(league + ' REFRESH\r\n\r\nDo you want to refresh the ' + league + ' schedule data?\r\n\r\n(Only necessary when ' + league + ' schedule changes occur)', ui.ButtonSet.YES_NO);
           if (refreshSchedulePrompt == 'YES') {
-            fetchSchedule(year);
+            fetchSchedule(ss,year);
           }
         }
         catch (err) {
           let fetchSchedulePrompt = ui.alert(league + ' SCHEDULE IMPORT\r\n\r\nIt looks like ' + league + ' data hasn\'t been brought in, import now?', ui.ButtonSet.YES_NO);
           if ( fetchSchedulePrompt == 'YES' ) {
-            fetchSchedule(year);
+            fetchSchedule(ss,year);
           } else {
             ui.alert('RETRY\r\n\r\nPlease run again and import ' + league + ' first or click \'YES\' next time', ui.ButtonSet.OK);
           }
