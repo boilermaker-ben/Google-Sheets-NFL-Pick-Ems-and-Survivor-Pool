@@ -1,7 +1,7 @@
 /** GOOGLE SHEETS PICK 'EMS & SURVIVOR
  * League Creator & Management Platform Tool
- * v2.6
- * 08/24/2024
+ * v2.7
+ * 09/16/2024
  * 
  * Created by Ben Powers
  * ben.powers.creative@gmail.com
@@ -83,7 +83,7 @@
  * Opens an HTML pop-up that has a link to send me an email and this project hosted on GitHub
  * 
  * If you're feeling generous and would like to support my work,
- * here's a link to support my wife, five kiddos, and me:
+ * here's a link to support my wife, five kiddos (sixth on the way!), and me:
  * https://www.buymeacoffee.com/benpowers
  * 
  * Thanks for checking out the script!
