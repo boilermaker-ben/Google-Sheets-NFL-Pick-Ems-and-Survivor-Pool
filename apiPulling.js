@@ -30,18 +30,23 @@ function fetchYear() {
 function fetchWeek(negative) {
   let weeks, week, advance = 0;
   try {
+    
     const obj = JSON.parse(UrlFetchApp.fetch(scoreboard).getContentText());
+    
     let season = obj.season.type;
+    
     obj.leagues[0].calendar.forEach(entry => {
       if (entry.value == season) {
         weeks = entry.entries.length;
       }
     });
+
     obj.events.forEach(event => {
       if (event.status.type.state != 'pre') {
         advance = 1; // At least one game has started and therefore the script will prompt for the next week
       }
     });
+
     let name;
     switch (season) {
       case 1:
@@ -57,9 +62,8 @@ function fetchWeek(negative) {
         week = obj.week.number + obj.leagues[0].calendar[1].entries.length + advance;
         break;
     }
-    Logger.log(name + ' is currently active with ' + weeks + ' weeks in total, current week is: ' + week); 
+    Logger.log(name + ' is currently active with ' + weeks + ' weeks in total'); 
     if (negative) {
-      
       return week;
     } else {
       week = week <= 0 ? 1 : week;
@@ -72,7 +76,6 @@ function fetchWeek(negative) {
   }
 }
 
-// FETCH TOTAL WEEKS
 // FETCH TOTAL WEEKS - doesn't remove the week 22 pro bowl
 function fetchWeeks() {
   try {
@@ -114,7 +117,7 @@ function fetchTeamsESPN(year) {
 
 
 // NFL TEAM INFO - script to fetch all NFL data for teams - auto for setting up trigger allows for boolean entry in column near the end
-function fetchSchedule(year,ss,currentWeek,auto,overwrite) {
+function fetchSchedule(ss,year,currentWeek,auto,overwrite) {
   // Calls the linked spreadsheet
   const timeFetched = new Date();
   ss = fetchSpreadsheet(ss);
@@ -560,7 +563,6 @@ function fetchSchedule(year,ss,currentWeek,auto,overwrite) {
   ss.toast(`Imported all ${LEAGUE} schedule data`);
 }
 
-
 // NFL GAMES - output by week input and in array format: [date,day,hour,minute,dayName,awayTeam,homeTeam,awayTeamLocation,awayTeamName,homeTeamLocation,homeTeamName]
 function fetchGames(week) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -568,7 +570,7 @@ function fetchGames(week) {
     week = fetchWeek();
   }
   try {
-    const nfl = ss.getRangeByName(league).getValues();
+    const nfl = ss.getRangeByName(league).getValues().shift();
     let games = [];
     for (let a = 0; a < nfl.length; a++) {
       if (nfl[a][0] == week) {
@@ -778,12 +780,12 @@ function fetchWeeklyScores(){
       let data = [];
       if (!tnfInclude) {
         try {
-          data = ss.getRangeByName(league).getValues();
+          data = ss.getRangeByName(league).getValues().shift();
         }
         catch (err) {
           ss.toast('No NFL data, importing now');
           fetchSchedule(year);
-          data = ss.getRangeByName(league).getValues();
+          data = ss.getRangeByName(league).getValues().shift();
         }
         for (let a = 0; a < data.length; a++) {
           if (data[a][0] == week && (tnfInclude || (!tnfInclude && data[a][2] >= 0))) {
