@@ -356,57 +356,61 @@ function weeklySheet(ss,week,members,dataRestore) {
     ss.setNamedRange('COMMENTS_' + week,sheet.getRange(entryRowStart,commentCol,totalMembers,1));
   }
 
-  for (let row = entryRowStart; row <= entryRowEnd; row++ ) {
-    // Formula to determine how many correct on the week
-    sheet.getRange(row,1,1,maxCols).setBorder(null,null,true,null,false,false,'#AAAAAA',SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.getRange(entryRowStart, 1, totalMembers, maxCols)
+       .setBorder(null, null, true, null, false, true, '#AAAAAA', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
-    sheet.getRange(row,pointsCol).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,counta(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')>0),sum(arrayformula(if(not(isblank(R'+row+'C'+firstMatchCol+':R'+row+'C'+finalMatchCol+')),if(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'=R'+row+'C'+firstMatchCol+':R'+row+'C'+finalMatchCol+',1,0),0)*R'+bonusRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol+')),))');
+  // Define core range strings for reuse
+  const picksRange = `R[0]C${firstMatchCol}:R[0]C${finalMatchCol}`;
+  const resultsRange = `R${outcomeRow}C${firstMatchCol}:R${outcomeRow}C${finalMatchCol}`;
+  const pointsCell = `R[0]C${pointsCol}`;
+  const rankCell = `R[0]C${pointsCol+1}`;
+  const chancesCell = `R[0]C${pointsCol+2}`;
+  const allPointsRange = `R${entryRowStart}C${pointsCol}:R${entryRowEnd}C${pointsCol}`;
+  const allBonusRange = `R${bonusRow}C${firstMatchCol}:R${bonusRow}C${finalMatchCol}`;
 
-    // sheet.getRange(row,2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C['+finalMatchCol+'])>0,counta(R[0]C[3]:R[0]C['+finalMatchCol+'])>0),mmult(arrayformula(if(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'=R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')),1,0)))),))');
-    
-    // Formula to determine weekly rank
-    sheet.getRange(row,pointsCol+1).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),rank(R[0]C'+pointsCol+',R'+entryRowStart+'C2:R'+entryRowEnd+'C2,false),))');
-    // Formula to determine weekly correct percent
-    sheet.getRange(row,pointsCol+2).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,not(isblank(R[0]C'+pointsCol+'))),sum(filter(arrayformula(if(and(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'=R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+',R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+'\<\>\"\"),1,0)),counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')))/counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+'),),)');
-    
-    // Formula to determine difference of tiebreaker from final MNF score
-    if (tiebreaker) {
-      sheet.getRange(row,tiebreakerCol+1).setFormulaR1C1('=iferror(if(or(isblank(R[0]C[-1]),isblank(R'+outcomeRow+'C'+tiebreakerCol+')),,abs(R[0]C[-1]-R'+outcomeRow+'C'+tiebreakerCol+')))');
-      // Formula to denote winner with a '1' if a clear winner exists
-      sheet.getRange(row,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),arrayformula(if(countif(array_constrain({R[0]C'+pointsCol+',R[0]C'+(tiebreakerCol+1)+'}=filter(filter({R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+',R'+entryRowStart+'C'+(tiebreakerCol+1)+':R'+entryRowEnd+'C'+(tiebreakerCol+1)+'},R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'=max(R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+')),filter(R'+entryRowStart+'C'+(tiebreakerCol+1)+':R'+entryRowEnd+'C'+(tiebreakerCol+1)+',R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'=max(R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'))=min(filter(R'+entryRowStart+'C'+(tiebreakerCol+1)+':R'+entryRowEnd+'C'+(tiebreakerCol+1)+',R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+'=max(R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+')))),1,2),true)=2,1,0))),)');
-    } else {
-      // Formula to denote winner with a '1', with a tiebreaker allowed
-      sheet.getRange(row,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),if(rank(R'+row+'C'+pointsCol+',R'+entryRowStart+'C'+pointsCol+':R'+entryRowEnd+'C'+pointsCol+',false)=1,1,0)),)');
-    }
+  // Points Formula (using efficient SUMPRODUCT)
+  const pointsFormula = `=IFERROR(IF(COUNTA(${resultsRange}) > 0, SUMPRODUCT(--(${picksRange}=${resultsRange}), ${allBonusRange}),))`;
 
-    // Formula to determine MNF win status sum (can be more than 1 for rare weeks)
-    if (mnfInclude && mnf) {
-      sheet.getRange(row,mnfCol).setFormulaR1C1('=iferror(if(and(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')>0,counta(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')>0),if(mmult(arrayformula(if(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+'=R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+')),1,0))))=0,0,mmult(arrayformula(if(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+'=R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R[0]C'+mnfStartCol+':R[0]C'+mnfEndCol+')),1,0))))),),)');
-    }
+  // Rank Formula
+  const rankFormula = `=IFERROR(IF(NOT(ISBLANK(${pointsCell})), RANK(${pointsCell}, ${allPointsRange}, 0), ""))`;
 
-    // Formula to generate array of similar pickers on the week
-    sheet.getRange(row,diffCol).setFormulaR1C1('=iferror(if(isblank(R[0]C'+(firstMatchCol+2)+'),,transpose(arrayformula({arrayformula('+matches+'-query({R'+entryRowStart+'C1:R'+entryRowEnd+'C1,arrayformula(mmult(if(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+(finalMatchCol)+'=R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+',1,0),transpose(arrayformula(column(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')\^0))))},\"select Col2 where Col1 <> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+'\"))&\": \"&query({R'+entryRowStart+'C1:R'+entryRowEnd+'C1,arrayformula(mmult(if(R'+entryRowStart+'C'+firstMatchCol+':R'+entryRowEnd+'C'+finalMatchCol+'=R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+',1,0),transpose(arrayformula(column(R[0]C'+firstMatchCol+':R[0]C'+finalMatchCol+')\^0))))},\"select Col1 where Col1 \<\> \'\"\&R[0]C1\&\"\' order by Col2 desc, Col1 asc limit '+diffCount+
-      '\")}))))');
-  }
+  // Percent Correct Formula (using efficient SUMPRODUCT)
+  const percentFormula = `=IFERROR(IF(COUNTA(${resultsRange}) > 0, SUMPRODUCT(--(${picksRange}=${resultsRange}), --(${resultsRange}<>"")) / COUNTA(${resultsRange}), ""))`;
+ 
+  // Tiebreaker Difference Formula
+  const tiebreakerDiffFormula = `=IFERROR(IF(OR(ISBLANK(R[0]C[-1]), ISBLANK(R${outcomeRow}C${tiebreakerCol})),, ABS(R[0]C[-1] - R${outcomeRow}C${tiebreakerCol})))`;
 
-  // Sets the formula for home / away split for each matchup column
-  for (let col = firstMatchCol; col <= finalMatchCol; col++ ) {
-    sheet.getRange(summaryRow,col).setFormulaR1C1('=iferror(if(counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])>0,if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(R'+matchRow+'C[0],"[A-Z]{2,3}"))=counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])/2,\"SPLIT\"&char(10)&\"50%\",if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(R'+matchRow+'C[0],\"[A-Z]{2,3}\"))<counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])/2,regexextract(right(R'+matchRow+'C[0],3),\"[A-Z]{2,3}\")&char(10)&round(100*countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(right(R'+matchRow+'C[0],3),\"[A-Z]{2,3}\"))/counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1)&\"%\",regexextract(R'+matchRow+'C[0],\"[A-Z]{2,3}\")&char(10)&round(100*countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],regexextract(R'+matchRow+'C[0],\"[A-Z]{2,3}\"))/counta(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1)&\"%\")),))');
-  }
+  // Similar Pickers Formula ----- NEEDS REWORKED
+  const similarPickersFormula = `=IFERROR(IF(ISBLANK(R[0]C${firstMatchCol}),, TRANSPOSE(ARRAYFORMULA({(${matches} - QUERY({R${entryRowStart}C1:R${entryRowEnd}C1, ARRAYFORMULA(MMULT(IF(R${entryRowStart}C${firstMatchCol}:R${entryRowEnd}C${finalMatchCol}=${picksRange},1,0),TRANSPOSE(ARRAYFORMULA(COLUMN(${picksRange})^0))))}, "select Col2 where Col1 <> '"&R[0]C1&"' order by Col2 desc, Col1 asc limit ${diffCount}")) & ": " & QUERY({R${entryRowStart}C1:R${entryRowEnd}C1, ARRAYFORMULA(MMULT(IF(R${entryRowStart}C${firstMatchCol}:R${entryRowEnd}C${finalMatchCol}=${picksRange},1,0),TRANSPOSE(ARRAYFORMULA(COLUMN(${picksRange})^0))))}, "select Col1 where Col1 <> '"&R[0]C1&"' order by Col2 desc, Col1 asc limit ${diffCount}")}))))`;
+
+  sheet.getRange(entryRowStart, pointsCol, totalMembers).setFormulaR1C1(pointsFormula);
+  sheet.getRange(entryRowStart, pointsCol + 1, totalMembers).setFormulaR1C1(rankFormula);
+  sheet.getRange(entryRowStart, pointsCol + 2, totalMembers).setFormulaR1C1(percentFormula);
   
+  sheet.getRange(entryRowStart, diffCol, totalMembers).setFormulaR1C1(similarPickersFormula);
+
+  // Apply conditional formulas
   if (tiebreaker) {
-    sheet.getRange(matchRow,winCol).setFormulaR1C1('=if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)>1,\"TIE\",\"WIN\")');
-    sheet.getRange(summaryRow,winCol).setFormulaR1C1('=iferror(if(not(isblank(R'+summaryRow+'C'+tiebreakerCol+')),if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)>1,countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)&\"\-WAY\"&char(10)&\"TIE\",),),)');
-    sheet.getRange(summaryRow,tiebreakerCol).setFormulaR1C1('=iferror(if(sum(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])>0,\"AVG\"&char(10)&round(average(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1),),)');
-    sheet.getRange(summaryRow,tiebreakerCol+1).setFormulaR1C1('=iferror(if(sum(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0])>0,\"AVG\"&char(10)&round(average(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0]),1),),)');
+    sheet.getRange(entryRowStart, tiebreakerCol + 1, totalMembers).setFormulaR1C1(tiebreakerDiffFormula);
+    
+    const tiebreakerWinnerFormula = `=IFERROR(IF(COUNTA(R${outcomeRow}C${firstMatchCol}:R${outcomeRow}C${finalMatchCol})=VALUE(REGEXEXTRACT(R${dayRow}C1,"[0-9]+")), ARRAYFORMULA(IF(COUNTIF(ARRAY_CONSTRAIN({R[0]C${pointsCol},R[0]C${tiebreakerCol+1}}=FILTER(FILTER({${allPointsRange},R${entryRowStart}C${tiebreakerCol+1}:R${entryRowEnd}C${tiebreakerCol+1}},${allPointsRange}=MAX(${allPointsRange})),FILTER(R${entryRowStart}C${tiebreakerCol+1}:R${entryRowEnd}C${tiebreakerCol+1},${allPointsRange}=MAX(${allPointsRange}))=MIN(FILTER(R${entryRowStart}C${tiebreakerCol+1}:R${entryRowEnd}C${tiebreakerCol+1},${allPointsRange}=MAX(${allPointsRange})))),1,2),TRUE)=2,1,0))),)`;
+    sheet.getRange(entryRowStart, winCol, totalMembers).setFormulaR1C1(tiebreakerWinnerFormula);
+
   } else {
-    sheet.getRange(summaryRow,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)>1,countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)&\"\-WAY\"&char(10)&\"TIE\",\"DONE\"),),)');
-    sheet.getRange(matchRow,winCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+firstMatchCol+':R'+outcomeRow+'C'+finalMatchCol+')=value(regexextract(R'+dayRow+'C1,\"[0-9]+\")),if(countif(R'+entryRowStart+'C[0]:R'+entryRowEnd+'C[0],1)=0,\"TIE\",\"WIN\"),\"WIN\"),)');
+    const noTiebreakerWinnerFormula = `=IFERROR(IF(COUNTA(R${outcomeRow}C${firstMatchCol}:R${outcomeRow}C${finalMatchCol})=VALUE(REGEXEXTRACT(R${dayRow}C1,"[0-9]+")), IF(RANK(${pointsCell}, ${allPointsRange}, 0)=1, 1, 0)),)`;
+    sheet.getRange(entryRowStart, winCol, totalMembers).setFormulaR1C1(noTiebreakerWinnerFormula);
   }
 
   if (mnfInclude && mnf) {
-    sheet.getRange(summaryRow,mnfCol).setFormulaR1C1('=iferror(if(counta(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+')=columns(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+'),\"MNF\"\&char(10)&(round(sum(mmult(arrayformula(if(R'+entryRowStart+'C'+mnfStartCol+':R'+entryRowEnd+'C'+mnfEndCol+'=R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+',1,0)),transpose(arrayformula(if(not(isblank(R'+outcomeRow+'C'+mnfStartCol+':R'+outcomeRow+'C'+mnfEndCol+')),1,0)))))/counta(R'+entryRowStart+'C'+mnfStartCol+':R'+entryRowEnd+'C'+mnfEndCol+'),3)*100)\&\"\%\",),)');
+    let mnfFormulaCore = `-- (R[0]C${mnfStartCol}:R[0]C${mnfEndCol}=R${outcomeRow}C${mnfStartCol}:R${outcomeRow}C${mnfEndCol})`;
+    const mnfFormula = `=IFERROR(IF(COUNTA(${resultsRange}) > 0, ${mnfFormulaCore}, ""), "")`;
+    sheet.getRange(entryRowStart, mnfCol, totalMembers).setFormulaR1C1(mnfFormula);
   }
+
+  // Formula for the Home/Away split summary in the summary row
+  const homeAwaySplitFormula = `=IFERROR(IF(COUNTA(R${entryRowStart}C[0]:R${entryRowEnd}C[0])=0,, LET(total_picks, COUNTA(R${entryRowStart}C[0]:R${entryRowEnd}C[0]), home_team, REGEXEXTRACT(R${matchRow}C[0], "[A-Z]{2,3}$"), home_picks, COUNTIF(R${entryRowStart}C[0]:R${entryRowEnd}C[0], home_team), away_team, REGEXEXTRACT(R${matchRow}C[0], "^[A-Z]{2,3}"), IF(home_picks = total_picks/2, "SPLIT"&CHAR(10)&"50%", IF(home_picks > total_picks/2, home_team & CHAR(10) & ROUND(100*home_picks/total_picks,0)&"%", away_team & CHAR(10) & ROUND(100*(total_picks-home_picks)/total_picks,0)&"%")))))`;
+
+  sheet.getRange(summaryRow, firstMatchCol, 1, matches).setFormulaR1C1(homeAwaySplitFormula);
 
   sheet.getRange(matchRow,pointsCol).setFormulaR1C1('=iferror(if(countif(R'+bonusRow+'C'+firstMatchCol+':R'+bonusRow+'C'+finalMatchCol+',\">1\")>0,\"TOTAL\"&char(10)&\"POINTS\",\"TOTAL\"&char(10)&\"CORRECT\"),)');
 
