@@ -4,19 +4,31 @@
   function formExistingCheck(week,year,source,name) {
     // Checking for form by ID provided in spreadsheet "CONFIG" page
     if (source == 'ss' || source == null) {
+      // Updated 9/19/2025 due to errors being thrown by "getValue()" attempting to operate on a named range that could not be found
+      let current;
+      week = week || 1;
       let range = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('FORM_WEEK_'+week);
-      let current = range.getValue();
-      if (current != '') {
-        Logger.log('Checking for form by using ID provided in spreadsheet');
-        if(formNoResponses(current,week,source)) {
-          range.getSheet().getRange(range.getRow(),range.getColumn(),1,3).setValue(''); // Sets the row related to the existing spreadsheet to blanks for repopulating with new form info
-          return true;
+      if (range) {
+        current = range.getValue();
+        if (current != '') {
+          Logger.log('Checking for form by using ID provided in spreadsheet');
+          if(formNoResponses(current,week,source)) {
+            range.getSheet().getRange(range.getRow(),range.getColumn(),1,3).setValue(''); // Sets the row related to the existing spreadsheet to blanks for repopulating with new form info
+            return true;
+          } else {
+            return false;
+          }
         } else {
           return false;
         }
       } else {
-        return true;
-      }  
+        if (Number.isInteger(Number(week))) {
+          Logger.log(`Issue detecting a range for week ${week}--have you modified or deleted the named range for referencing an existing form?`);
+        } else {
+          Logger.log(`The script passed a non-integer for week into the existing form check script (${week}), returning a false response to create a new form...`);
+        }
+        return false;
+      }
 
     // Checking Google Drive for folder for season and any matching forms by name
     } else if (source == 'drive') {
