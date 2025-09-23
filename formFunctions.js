@@ -135,7 +135,8 @@
           return [newForm(week,year,name),true];
         }
       }
-      return [null,false];
+      // Should return new form if existing is not found; Updated 9/23/2025
+      return [newForm(week,year,name),true];
     }
   }
 
