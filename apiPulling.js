@@ -590,14 +590,17 @@ function fetchGames(week) {
 
 // NFL ACTIVE WEEK SCORES - script to check and pull down any completed matches and record them to the weekly sheet
 function recordWeeklyScores(){
-  
+  Logger.log(`📻 Fetching outcomes data from API endpoint...`)
   const outcomes = fetchWeeklyScores();
+  Logger.log(`🔄 Outcomes data being processed:\n${outcomes}`);
   if (outcomes[0] > 0) {
     const week = outcomes[0];
     const games = outcomes[1];
     const completed = outcomes[2];
     const remaining = outcomes[3];
     const data = outcomes[4];
+
+    Logger.log(`📊 Found ${games} games for this week, with ${completed} completed.`)
 
     const done = (games == completed);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -606,48 +609,42 @@ function recordWeeklyScores(){
     const pickemsInclude = ss.getRangeByName('PICKEMS_PRESENT').getValue();
     const survivorInclude = ss.getRangeByName('SURVIVOR_PRESENT').getValue();
     const tiebreakerInclude = ss.getRangeByName('TIEBREAKER_PRESENT').getValue();
-    let outcomesRecorded = [];
+    let tiebreaker = null;
+    let outcomesRecorded = [], weeklySheetOutcomes = [];
     let range;
     let alert = 'CANCEL';
     if (done) {
       let text = 'WEEK ' + week + ' COMPLETE\r\n\r\nMark all game outcomes';
       if (pickemsInclude) {
-        text = text + ' and tiebreaker?';
+        text += ' and tiebreaker?';
       } else {
-        text = text + '?';
+        text += '?';
       }
       alert = ui.alert(text, ui.ButtonSet.OK_CANCEL);
     } else if (remaining == 1) {
-      alert = ui.alert('WEEK ' + week + ' INCOMPLETE\r\n\r\nRecord completed game outcomes?\r\n\r\n(There is one undecided game)\r\n\r\n', ui.ButtonSet.OK_CANCEL);
+      alert = ui.alert(`WEEK ${week} INCOMPLETE`,`Record completed game outcomes?\r\n\r\n(There is one undecided game)`, ui.ButtonSet.OK_CANCEL);
     } else if (remaining > 0 && remaining != games){
-      alert = ui.alert('WEEK ' + week + ' INCOMPLETE\r\n\r\nRecord completed game outcomes?\r\n\r\n(There are ' + remaining + ' undecided games remaining)\r\n\r\n', ui.ButtonSet.OK_CANCEL);
+      alert = ui.alert(`WEEK ${week} INCOMPLETE`,`Record completed game outcomes?\r\n\r\n(There are ${remaining} undecided games remaining)`, ui.ButtonSet.OK_CANCEL);
     } else if (remaining == games) {
-      ui.alert('WEEK ' + week + ' NOT YET STARTED\r\n\r\nNo game outcomes to record.\r\n\r\n', ui.ButtonSet.OK);
+      ui.alert(`WEEK ${week} NOT YET STARTED`,`No game outcomes to record.`, ui.ButtonSet.OK);
     }
+    let sheet,matchupRange,matchups,outcomeRange;
     if (alert == 'OK') {
       if (pickemsInclude) {
-        let sheet,matchupRange,matchups,cols,outcomeRange,outcomesRecorded,writeRange;
         try {
           sheet = ss.getSheetByName(weeklySheetPrefix+week);
           matchupRange = ss.getRangeByName(league + '_'+week);
           matchups = matchupRange.getValues().flat();
-          outcomeRange = ss.getRangeByName(league + '_PICKEM_OUTCOMES_'+week);
+          outcomeRange = ss.getRangeByName(`${league}_PICKEM_OUTCOMES_${week}`);
           outcomesRecorded = outcomeRange.getValues().flat();
-          if (tiebreakerInclude) {
-            cols = matchups.length+1; // Adds one more column for tiebreaker value
-          } else {
-            cols = matchups.length;
-          }
-          writeRange = sheet.getRange(outcomeRange.getRow(),outcomeRange.getColumn(),1,cols);
         }
         catch (err) {
           Logger.log(err.stack);
-          ss.toast('Issue with fetching weekly sheet or named ranges on weekly sheet, recreating now.');
+          ss.toast('⚠️ Issue with fetching weekly sheet or named ranges on weekly sheet, recreating now.');
           weeklySheet(week,memberList(ss),false);
         }
         let regex = new RegExp('[A-Z]{2,3}','g');
-        let arr = [];
-        for (let a = 0; a < matchups.length; a++){
+        for (let a = 0; a < matchups.length; a++){;
           let game = matchups[a].match(regex);
           let away = game[0];
           let home = game[1];
@@ -655,54 +652,68 @@ function recordWeeklyScores(){
           try {
             outcome = [];
             for (let b = 0; b < data.length; b++) {
-              if (data[b][0] == away  && data[b][1] == home) {
+              if (data[b][0] == away && data[b][1] == home) {
                 outcome = data[b];
               }
             }
             if (outcome.length <= 0) {
-              throw new Error ('No game data for game at index ' + (a+1) + ' with teams given as ' + away + ' and ' + home);
+              throw new Error (`🚫 No game data for game at index ${a+1} with teams given as ${away} and ${home}`);
             }
-            //outcome = data.filter(game => game[0] == away && game[1] == home)[0];
             if (outcome[2] == away || outcome[2] == home) {
               if (regex.test(outcome[2])) {
-                arr.push(outcome[2]);
+                weeklySheetOutcomes.push(outcome[2]);
               } else {
-                arr.push(outcomesRecorded[a]);
+                weeklySheetOutcomes.push(outcomesRecorded[a]);
               }
             } else if (outcome[2] == 'TIE') {
               let writeCell = sheet.getRange(outcomeRange.getRow(),outcomeRange.getColumn()+a);
               let rules = SpreadsheetApp.newDataValidation().requireValueInList([away,home,'TIE'], true).build();
               writeCell.setDataValidation(rules);
+              weeklySheetOutcomes.push('TIE');
             } else {
-              arr.push(outcomesRecorded[a]);
+              weeklySheetOutcomes.push(outcomesRecorded[a]);
             }
           }
           catch (err) {
-            Logger.log('No game data for ' + away + '@' + home);
-            arr.push(outcomesRecorded[a]);
+            Logger.log(`⭕ No game data for ${away}@${home}`);
+            weeklySheetOutcomes.push(outcomesRecorded[a]);
           }
           if (tiebreakerInclude) {
             try {
               if (a == (matchups.length - 1)) {
-                if (outcome.length <= 0) {
-                  throw new Error('No tiebreaker yet');
+                Logger.log(`⚖️ Found last matchup of ${away}@${home}, checking if tiebreaker available.`)
+                if (!outcome) {
+                  throw new Error('⚖️ No tiebreaker yet');
                 }
-                arr.push(outcome[3]); // Appends tiebreaker to end of array
+                tiebreaker = outcome[3];
+                Logger.log(`💾 Storing tiebreaker value of ${outcome[3]}`);
               }
             }
             catch (err) {
-              Logger.log('No tiebreaker yet');
-              let tiebreakerCell = ss.getRangeByName(league + '_TIEBREAKER_'+week);
-              let tiebreaker = sheet.getRange(tiebreakerCell.getRow()-1,tiebreakerCell.getColumn()).getValue();
-              arr.push(tiebreaker);
+              Logger.log(`⚠️ Tiebreaker not available, value of "${tiebreaker ? tiebreaker : null}"`);
             }
           }
         }
-        writeRange.setValues([arr]);
+        try {
+          if (weeklySheetOutcomes.length < outcomeRange.getNumColumns()) {
+            let paddingLength = outcomeRange.getNumColumns() - weeklySheetOutcomes.length;
+            const padding = Array(paddingLength).fill("");
+            Logger.log(`➕ Adding ${paddingLength} empty entries to fill in outcomes range`);
+            weeklySheetOutcomes = weeklySheetOutcomes.concat(padding);
+          }
+          Logger.log(`📝 Writing ${completed} outcomes out of ${games} games to outcome range for ${sheet.getSheetName()} sheet.`)
+          outcomeRange.setValues([weeklySheetOutcomes]);
+          Logger.log(`✅ Successfully recorded outcomes for ${completed} games`);
+        } catch(err) {
+          const errText = `Issue recording outcomes for week ${week} games  to ${sheet.getSheetName()} sheet.`;
+          Logger.log(`⚠️ ${errText} | ERROR: ${err.stack}`);
+          ss.toast(`${errText} Check logs for details.` ,`⚠️ ERROR PLACING VALUES`);
+        }
       } else if (survivorInclude) {
-        let away = ss.getRangeByName(league + '_AWAY_'+week).getValues().flat();
-        let home = ss.getRangeByName(league + '_HOME_'+week).getValues().flat();
-        range = ss.getRangeByName(league + '_OUTCOMES_'+week);
+        Logger.log(`👑 Survivor only; no pick 'ems sheet. Recording outcomes to ${league}_OUTCOMES sheet for week ${week}`)
+        let away = ss.getRangeByName(`${league}_AWAY_${week}`).getValues().flat();
+        let home = ss.getRangeByName(`${league}_HOME_${week}`).getValues().flat();
+        range = ss.getRangeByName(`${league}_OUTCOMES_${week}`);
         outcomesRecorded = range.getValues().flat();
         let arr = [];
         for (let a = 0; a < away.length; a++) {
@@ -710,31 +721,47 @@ function recordWeeklyScores(){
           for (let b = 0; b < data.length; b++) {
             if (data[b][0] == away[a] && data[b][1] == home[a]) {
               if (data[b][2] != null  && (outcomesRecorded[a] == null || outcomesRecorded[a] == '')) {
-                arr[a] = [data[b][2]];  
+                arr[a] = [data[b][2]];
               } else {
                 arr[a] = [outcomesRecorded[a]];
               }
             }
           }        
         }
-        range.setValues(arr);
+        try {
+          Logger.log(`📝 Writing ${completed} outcomes out of ${games} games to ${league}_OUTCOMES sheet for week ${week}.`)
+          range.setValues(arr);
+          Logger.log(`✅ Successfully recorded outcomes for ${completed} games to ${league}_OUTCOMES sheet`);
+        } catch(err) {
+          const errText = `Issue recording outcomes for week ${week} games to ${league}_OUTCOMES sheet.`;
+          Logger.log(`⚠️ ${errText} | ERROR: ${err.stack}`);
+          ss.toast(`${errText} Check logs for details.`,`⚠️ ERROR PLACING VALUES`);
+        }
+      }      
+    }
+    if (pickemsInclude && tiebreakerInclude) {
+      if (tiebreaker) {
+        const tiebreakerCol = ss.getRangeByName(`${league}_TIEBREAKER_${week}`).getColumn();
+        sheet.getRange(outcomeRange.getRow(),tiebreakerCol).setValue(tiebreaker);
+      } else {
+        Logger.log(`⚖️ No tiebreaker value to record yet`);
       }
     }
     if (done) {  
       if (survivorInclude) {
-        let prompt = ui.alert('WEEK ' + week + ' COMPLETE\r\n\r\nAdvance survivor pool?', ui.ButtonSet.YES_NO); 
+        let prompt = ui.alert(`✅ WEEK ${week} COMPLETE`, `Advance survivor pool?`, ui.ButtonSet.YES_NO); 
         if ( prompt == 'YES' ) {
           ss.getRangeByName('WEEK').setValue(week+1);
         } else {
-          ss.toast('Complete: '+ completed + ' game outcomes recorded');
+          ss.toast(`${completed} game outcomes recorded`,`✅ COMPLETED`);
         }
       } else {
-        ss.toast('Complete: '+ completed + ' game outcomes recorded');
+        ss.toast(`${completed} game outcomes recorded for week ${week}`,`✅ COMPLETE`);
       }
-    } else if ( alert != 'CANCEL') {
-      ss.toast('Complete: '+ completed + ' game outcomes recorded');
+    } else if ( alert == 'OK') {
+      ss.toast(`${completed} game outcomes recorded for week ${week}`, `✅ COMPLETE`);
     } else {
-    ss.toast('Canceled import.');
+    ss.toast(`Canceled import of matchups for week ${week}.`, `❌ CANCELED`);
     }
   }
 }
