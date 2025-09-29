@@ -570,7 +570,8 @@ function fetchGames(week) {
     week = fetchWeek();
   }
   try {
-    const nfl = ss.getRangeByName(league).getValues().shift();
+    const nfl = ss.getRangeByName(league).getValues();
+    nfl.shift();
     let games = [];
     for (let a = 0; a < nfl.length; a++) {
       if (nfl[a][0] == week) {
@@ -807,12 +808,14 @@ function fetchWeeklyScores(){
       let data = [];
       if (!tnfInclude) {
         try {
-          data = ss.getRangeByName(league).getValues().shift();
+          data = ss.getRangeByName(league).getValues();
+          data.shift();
         }
         catch (err) {
           ss.toast('No NFL data, importing now');
           fetchSchedule(ss,year);
-          data = ss.getRangeByName(league).getValues().shift();
+          data = ss.getRangeByName(league).getValues();
+          data.shift();
         }
         for (let a = 0; a < data.length; a++) {
           if (data[a][0] == week && (tnfInclude || (!tnfInclude && data[a][2] >= 0))) {
