@@ -709,6 +709,7 @@ function recordWeeklyScores(){
           const errText = `Issue recording outcomes for week ${week} games  to ${sheet.getSheetName()} sheet.`;
           Logger.log(`⚠️ ${errText} | ERROR: ${err.stack}`);
           ss.toast(`${errText} Check logs for details.` ,`⚠️ ERROR PLACING VALUES`);
+          return null;
         }
       } else if (survivorInclude) {
         Logger.log(`👑 Survivor only; no pick 'ems sheet. Recording outcomes to ${league}_OUTCOMES sheet for week ${week}`)
@@ -717,7 +718,7 @@ function recordWeeklyScores(){
         range = ss.getRangeByName(`${league}_OUTCOMES_${week}`);
         outcomesRecorded = range.getValues().flat();
         let arr = [];
-        for (let a = 0; a < away.length; a++) {
+        for (let a = 0; a < outcomesRecorded.length; a++) {
           arr.push([null]);
           for (let b = 0; b < data.length; b++) {
             if (data[b][0] == away[a] && data[b][1] == home[a]) {
@@ -727,7 +728,7 @@ function recordWeeklyScores(){
                 arr[a] = [outcomesRecorded[a]];
               }
             }
-          }        
+          }
         }
         try {
           Logger.log(`📝 Writing ${completed} outcomes out of ${games} games to ${league}_OUTCOMES sheet for week ${week}.`)
@@ -737,6 +738,7 @@ function recordWeeklyScores(){
           const errText = `Issue recording outcomes for week ${week} games to ${league}_OUTCOMES sheet.`;
           Logger.log(`⚠️ ${errText} | ERROR: ${err.stack}`);
           ss.toast(`${errText} Check logs for details.`,`⚠️ ERROR PLACING VALUES`);
+          return null;
         }
       }      
     }
